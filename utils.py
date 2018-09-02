@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[5]:
+# In[2]:
 
 
 import PIL
@@ -10,7 +10,7 @@ import time
 import numpy as np
 
 
-# In[6]:
+# In[5]:
 
 
 def pic_shot(x1, y1, x2, y2, fname=None):
@@ -20,8 +20,15 @@ def pic_shot(x1, y1, x2, y2, fname=None):
     if fname:
         img.save(fname)
     end = time.time()
-    print('[SHOT {}] Get pic: {}, Time Use: {} s'.format(time.strftime('%H:%M:%S'), fname, end - beg))
+    # print('[SHOT {}] Get pic: {}, Time Use: {} s'.format(time.strftime('%H:%M:%S'), fname, end - beg))
     return img
+
+
+# In[4]:
+
+
+def echo_info(name, info):
+    print('[{} {}] '.format(name, time.strftime('%H:%M:%S')) + info)
 
 
 # In[7]:
