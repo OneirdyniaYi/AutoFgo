@@ -1,90 +1,86 @@
 
 # coding: utf-8
 
-# In[6]:
+# In[5]:
 
 
 import PIL
 from PIL import ImageGrab
 import time 
-import ctypes
+import numpy as np
 
 
-# In[1]:
+# In[6]:
 
 
-def pic_shot(x1, y1, x2, y2, fname):
+def pic_shot(x1, y1, x2, y2, fname=None):
     beg = time.time()
     img = ImageGrab.grab(bbox=(x1, y1, x2, y2))
     # img = np.array(img.getdata(), np.uint8).reshape(img.size[1], img.size[0], 3)
-    img.save(fname)
+    if fname:
+        img.save(fname)
     end = time.time()
-    print('[Screen Shot] Get pic: {}, Time Use: {} s'.format(fname, end - beg))
+    print('[SHOT {}] Get pic: {}, Time Use: {} s'.format(time.strftime('%H:%M:%S'), fname, end - beg))
     return img
 
 
-# In[ ]:
+# In[7]:
 
 
-def window_capture_win32(filename):
-      hwnd = 0     # num of window.
-      hwndDC = win32gui.GetWindowDC(hwnd)
-      mfcDC = win32ui.CreateDCFromHandle(hwndDC)
-      saveDC = mfcDC.CreateCompatibleDC()
-      saveBitMap = win32ui.CreateBitmap()
-      # get monitor info.
-      # MoniterDev = win32api.EnumDisplayMonitors(None, None)
-      # w = MoniterDev[0][2][2]
-      # h = MoniterDev[0][2][3]
-      w = 500
-      h = 200
-      # create new space for bitmap.
-      saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
-      saveDC.SelectObject(saveBitMap)
-      # shot a (h, w) pic.
-      saveDC.BitBlt((100, 100), (w, h), mfcDC, (0, 100), win32con.SRCCOPY)
-      saveBitMap.SaveBitmapFile(saveDC, filename)
+def getColor(img, x, y):
+    # h(y)*w(x)*3
+    img = np.array(img)
+    pix = img[y][x]
+    # img[y][x] = (230, 0, 0)
+    # pix = PIL.Image.fromarray(img)
+    return pix
 
 
-# In[9]:
+# In[28]:
 
 
-STD_INPUT_HANDLE = -10
-STD_OUTPUT_HANDLE= -11
-STD_ERROR_HANDLE = -12
- 
-FOREGROUND_BLACK = 0x0
-FOREGROUND_BLUE = 0x01 # text color contains blue.
-FOREGROUND_GREEN= 0x02 # text color contains green.
-FOREGROUND_RED = 0x04 # text color contains red.
-FOREGROUND_INTENSITY = 0x08 # text color is intensified.
- 
-BACKGROUND_BLUE = 0x10 # background color contains blue.
-BACKGROUND_GREEN= 0x20 # background color contains green.
-BACKGROUND_RED = 0x40 # background color contains red.
-BACKGROUND_INTENSITY = 0x80 # background color is intensified.
- 
-class Color:
-    ''' See http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winprog/winprog/windows_api_reference.asp
-    for information on Windows APIs.'''
-    std_out_handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
+RESIZE_W = 9
+RESIZE_H = 8
+
+def get_hash(img):
+    small_img = img.resize((RESIZE_W, RESIZE_H))
+    small_img.save('tmp1.jpg')
+    gray_img = small_img.convert("L")
+    gray_img.save('tmp2.jpg')
+    pixels = list(gray_img.getdata())
+    diff = []
+    for row in range(RESIZE_H):    
+        row_start_index = row * RESIZE_W    
+        for col in range(RESIZE_W - 1):        
+            left_pixel_index = row_start_index + col
+            diff.append(pixels[left_pixel_index] > pixels[left_pixel_index + 1])
+
+    decimal_value = 0
+    hash_string = ""
+    for index, value in enumerate(diff):    
+        if value:       
+            decimal_value += value * (2 ** (index % 8))   
+        if index % 8 == 7:      
+            hash_string += str(hex(decimal_value)[2:].rjust(2, "0"))       
+            decimal_value = 0
+    return hash_string
+
+
+def compare_img(img1, img2):
+    dhash1 = get_hash(img1)
+    dhash2 = get_hash(img2)
+
+    # calculate hamming distance:
+    diff = (int(dhash1, 16)) ^ (int(dhash2, 16))
+    return bin(diff).count("1")
+
     
-    def set_cmd_color(self, color, handle=std_out_handle):
-        """(color) -> bit
-        Example: set_cmd_color(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY)
-        """
-        bool = ctypes.windll.kernel32.SetConsoleTextAttribute(handle, color)
-        return bool
-    
-    def reset_color(self):
-        self.set_cmd_color(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
-    
-    def print_red(self, print_text):
-        self.set_cmd_color(FOREGROUND_RED | FOREGROUND_INTENSITY)
-        print(print_text)
-        self.reset_color()
-        
-    def print_green(self, print_text):
-        self.set_cmd_color(FOREGROUND_GREEN | FOREGROUND_INTENSITY)
-        print(print_text)
+
+
+# In[31]:
+
+
+# img = pic_shot(0, 0, 400, 200)
+# compare_img(img, img2)
+# getColor(img, 10, 45)
 
