@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[2]:
 
 
 import PIL
@@ -11,7 +11,7 @@ import numpy as np
 import cv2
 
 
-# In[2]:
+# In[3]:
 
 
 def pic_shot(x1, y1, x2, y2, fname=None):
@@ -25,14 +25,14 @@ def pic_shot(x1, y1, x2, y2, fname=None):
     return img
 
 
-# In[3]:
+# In[4]:
 
 
 def echo_info(name, info):
     print('[{} {}] '.format(name, time.strftime('%H:%M:%S')) + info)
 
 
-# In[4]:
+# In[5]:
 
 
 def getColor(img, x, y):
@@ -44,7 +44,7 @@ def getColor(img, x, y):
     return pix
 
 
-# In[5]:
+# In[6]:
 
 
 RESIZE_W = 9
@@ -84,7 +84,7 @@ def compare_img(img1, img2):
 
 
 
-# In[6]:
+# In[7]:
 
 
 def get_global_color(img):
@@ -98,7 +98,7 @@ def compare_RGB(img1, img2):
     return np.sqrt(np.sum([(c1[i]-c2[i])**2 for i in range(3)]))
 
 
-# In[9]:
+# In[8]:
 
 
 def aHash(img):
@@ -146,5 +146,4 @@ def compare_img_new(img1, img2, algo):
     h1 = hash(img1)
     h2 = hash(img2)
     return cmpHash(h1, h2)
-
 

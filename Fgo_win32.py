@@ -5,10 +5,7 @@
 
 
 # [TODO] 
-# - 游戏结束判定     (atk icon的值持续不变时)  游戏结束进入菜单判断：开始时对菜单进行采样。
 # - 使用感知哈希智能出牌
-# - 每天首次魔力棱镜判定
-# - 体力不足判定    （感知哈希 or ai识别）   ...好像也可以进入战斗的时候等系统提示再嗑果
 
 import win32api, win32con, win32gui, win32ui
 import PIL
@@ -43,7 +40,7 @@ class Cursor(object):
         win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0)
 
 
-# In[6]:
+# In[3]:
 
 
 class Fgo(object):
@@ -100,6 +97,14 @@ class Fgo(object):
         self.loading_img = PIL.Image.open('./data/loading.jpg')
         self.atk_img = PIL.Image.open('./data/atk_ico.jpg')
         
+        # menu position: (1710, 1005), (1850, 1057)
+        self.menu_x1 = 0.8906
+        self.menu_y1 = 0.9306
+        self.menu_x2 = 0.9635
+        self.menu_y2 = 0.9787
+        
+        # get a screen shot of menu icon:
+        self.menu_img = self.pic_shot_float(self.menu_x1, self.menu_y1, self.menu_x2, self.menu_y2)
         
         
         print('\n---------------------[init over]---------------------------')
@@ -120,7 +125,7 @@ class Fgo(object):
             self.c.click()
         if not DEBUG:
             echo_info('INFO', 
-                     'simulate click at position: {}'.format(pos))
+                     'simulate click at position: [{}]'.format(pos))
         time.sleep(sleep_time)
         
     
@@ -150,15 +155,14 @@ class Fgo(object):
         self.click_act(start_x, start_y, 1)
     
         
-    def use_skill(self, skills):
+    def use_skill(self, skills, timeout=SKILL_SLEEP_TIME):
         # position of skills:
-        echo_info('START', 'Using skills:')
+        echo_info('START', 'Now using skills...')
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021, 0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
         ski_y = 0.8009
         # snap = 0.0734
         for i in skills:
-            # SKILL_SLEEP_TIME = 0.8
-            self.click_act(ski_x[i], ski_y, 2.5)
+            self.click_act(ski_x[i], ski_y, timeout)
               
         
     def attack(self):
@@ -277,14 +281,14 @@ class Fgo(object):
             return 0 if now_atk_img==self.atk_img else -1
         
     
-    def cal_atk_diff(self, targrt, hash=True):
+    def cal_atk_diff(self, targrt, save_img=False, hash=True):
         # sample1 area of attack icon:
         smp1_x1 = 0.8708
         smp1_y1 = 0.7556
         smp1_x2 = 0.8979
         smp1_y2 = 0.8009
         
-        return self.cal_diff(smp1_x1, smp1_y1, smp1_x2, smp1_y2, self.atk_img, hash)
+        return self.cal_diff(smp1_x1, smp1_y1, smp1_x2, smp1_y2, self.atk_img, save_img=save_img, hash=hash)
     
         
     def one_turn(self):
@@ -298,6 +302,9 @@ class Fgo(object):
         # turn_num_x2 = 0.6953
         # turn_num_y2 = 0.1519
         
+        # next icon:
+        
+        
         # uodate saved atk icon:
         self.diff_atk = self.cal_atk_diff(targrt=self.atk_img)
         print('save new atk diff:', self.diff_atk)
@@ -305,7 +312,6 @@ class Fgo(object):
         self.attack()
         time.sleep(3)
         
-        diffs = []
         # compare atk icon to the last saved icon.
         while 1:
             diff = self.cal_atk_diff(targrt=self.atk_img)
@@ -321,39 +327,59 @@ class Fgo(object):
                 if n==NUM:
                     return 0
             else:
-                diffs.append(diff)
-                if diffs[-BATTLE_END_TIMEOUT:] == [diff]*BATTLE_END_TIMEOUT and diff != LOADING_ATK_DIFF:
+                menu = self.pic_shot_float(self.menu_x1, self.menu_y1, self.menu_x2, self.menu_y2)
+                if menu == self.menu_img:
                     echo_info('STATUS', 'Detected status changing, battle finished.')
                     print('------------------------[BATTLE FINISH]--------------------------------')
                     return 1
                 
             # click to skip something.
-            self.click_act(0.4240, 0.1296, 0)
+            self.click_act(0.7771, 0.9370, 0)
             time.sleep(SURVEIL_TIME_OUT)
         # res = self.surveil(turn_num_x1, turn_num_y1, turn_num_x2, turn_num_y2, name='[TURN_NUMBER]', save_img=DEBUG)
 
         
     def one_turn_new(self):   
-        # sample1 area of attack icon:
+        # sample1 area of attack icon:(1672, 816), (1724, 865)
         smp1_x1 = 0.8708
         smp1_y1 = 0.7556
         smp1_x2 = 0.8979
         smp1_y2 = 0.8009
         # uodate saved atk icon:
-        self.atk_img = self.pic_shot_float(smp1_x1, smp1_y1, smp1_x2, smp1_y2)
-        print('save new atk img')
+        self.new_atk_img = self.pic_shot_float(smp1_x1, smp1_y1, smp1_x2, smp1_y2)
+        echo_info('INFO', 'Save new atk img.')
         
         self.attack()
         time.sleep(3)
         
         # compare atk icon to the last saved icon.
         while 1:
-            diff = self.cal_atk_diff(targrt=self.atk_img, hash=False)
-            print('now diff is :', diff)
-            if diff == 0:
-                return diff
+            now_atk_img = self.pic_shot_float(smp1_x1, smp1_y1, smp1_x2, smp1_y2)
+            if now_atk_img == self.new_atk_img:
+                echo_info('STATUS', 'Catch status changing, continue running...')
+                return 0
+            else:
+                now_menu_img = self.pic_shot_float(self.menu_x1, self.menu_y1, self.menu_x2, self.menu_y2)
+                if now_menu_img  == self.menu_img:
+                    echo_info('STATUS', 'Detected status changing, battle finished.')
+                    print('------------------------[BATTLE FINISH]--------------------------------\n')
+                    return 1
+                # click to skip something.
+                self.click_act(0.7771, 0.9370, 1)
+                
             time.sleep(SURVEIL_TIME_OUT)
             
+    def reuse_skill(self, cd_num):
+        skills = []
+        for i in range(len(YOUR_SKILL_CD)):
+            if YOUR_SKILL_CD[i] == cd_num:
+                skills.append(i)
+        if len(skills):
+            self.use_skill(skills, timeout=SKILL_SLEEP_TIME)
+            return 1
+        else:
+            return 0
+        
     
     def one_battle(self, go_on=False):
         '''
@@ -362,52 +388,52 @@ class Fgo(object):
         if not go_on:
             self.enter_battle(SUPPORT)
             # wait for going into loading page:
-            time.sleep(3)
+            time.sleep(3.5)
             self.diff_atk = self.wait_loading(save_img=DEBUG, sleep=5)
-            self.use_skill(USED_SKILL)
+            self.use_skill(USED_SKILL, timeout=SKILL_SLEEP_TIME)
         
         for i in range(30):
-            print('---------------------Turn {}---------------------'.format(i))
-            over = self.one_turn()
-            if over:
+            echo_info('INFO', 'Start turn {}'.format(i))
+            # self.use_skill(USED_SKILL, timeout=0.05)
+            self.reuse_skill(i)
+            over = self.one_turn_new()
             
-                # self.click_act(0.5, 0.5, 2)
-                # self.click_act(0.5, 0.5, 1)
+            if over:
+                return 1
+    
+    
+    def use_apple(self, num):
+        flag = 0
+        if not USE_APPLE_PER:
+            if num in USE_APPLE_ADDITION and num not in DONT_USE_APPLE:
+                flag = 1
+        else:   
+            if (not num % USE_APPLE_PER or num in USE_APPLE_ADDITION) and num not in DONT_USE_APPLE:
+                flag = 1
                 
+        if flag == 1:
+            # choose AP bar:
+            self.click_act(0.1896, 0.9611, 0.7)
+            # choose apple:
+            self.click_act(0.5, 0.4463, 0.7)
+            # choose OK:
+            self.click_act(0.6563, 0.7824, 1)
+            
                 
-                # 'next' icon.
-                end_x = 0.8667
-                end_y = 0.9417
-                self.click_act(end_x, end_y, 1)
-                
-                break
-
     def run(self):
-        for _ in range(EPOCH):
-            self.one_battle()
-            time.sleep(8)
-                    
-                  
-
-        
+        for j in range(EPOCH):
+            print('-----------------------[EPOCH {}]-----------------------------'.format(j))
+            self.one_battle() 
+            self.use_apple(j+1)
+            time.sleep(1)
+                
 
 
 # In[4]:
 
 
-fgo = Fgo(full_screen=False, sleep=False)
-fgo.one_battle(go_on=False)
+fgo = Fgo(full_screen=FULL_SCREEN, sleep=True)
+#fgo.one_battle(go_on=True)
+fgo.run()
 
-
-# In[5]:
-
-
-x, y = (814, 140)
-x/1920, y/1080
-
-
-# In[ ]:
-
-
-SURVEIL_TIME_OUT
 
