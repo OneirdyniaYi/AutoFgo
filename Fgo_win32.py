@@ -1,15 +1,13 @@
 
 # coding: utf-8
 
-# In[2]:
+# In[1]:
 
 
 # [TODO] 
-# - 游戏结束判定
+# - 游戏结束判定     (atk icon的值持续不变时)  游戏结束进入菜单判断：开始时对菜单进行采样。
 # - 使用感知哈希智能出牌
 # - 每天首次魔力棱镜判定
-# - 进入战斗加载判定 （采样attack）
-# - 战斗过场动画判定  （采样attack）
 # - 体力不足判定    （感知哈希 or ai识别）   ...好像也可以进入战斗的时候等系统提示再嗑果
 
 import win32api, win32con, win32gui, win32ui
@@ -17,10 +15,11 @@ import PIL
 import time
 from config import *
 import numpy as np
-from utils import compare_img, pic_shot, getColor, echo_info
+from utils import compare_img, pic_shot, compare_RGB, echo_info, compare_img_new
+LOADING_ATK_DIFF = 33
 
 
-# In[3]:
+# In[2]:
 
 
 class Cursor(object):
@@ -44,7 +43,7 @@ class Cursor(object):
         win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0)
 
 
-# In[14]:
+# In[6]:
 
 
 class Fgo(object):
@@ -98,10 +97,10 @@ class Fgo(object):
         
         
         #---------------------sampled pix info-----------------------
-        # postion of samples:
-        self.sample1_x = 0.8854
-        self.sample1_y = 0.7824
-        self.sample1_RGB = np.array([0, 0, 0])
+        self.loading_img = PIL.Image.open('./data/loading.jpg')
+        self.atk_img = PIL.Image.open('./data/atk_ico.jpg')
+        
+        
         
         print('\n---------------------[init over]---------------------------')
         #print('[DEBUG {}] Window width(x) = {}, height(y) = {}'.format(
@@ -119,8 +118,9 @@ class Fgo(object):
         self.c.move_to(pos)
         if click:
             self.c.click()
-        echo_info('INFO', 
-                 'simulate click at position: {}'.format(pos))
+        if not DEBUG:
+            echo_info('INFO', 
+                     'simulate click at position: {}'.format(pos))
         time.sleep(sleep_time)
         
     
@@ -148,27 +148,21 @@ class Fgo(object):
         start_x = 0.9281
         start_y = 0.9398
         self.click_act(start_x, start_y, 1)
-        
-        
-    def compare_RGB(self, target, x, y):
-        '''
-        - x, y: position of pix in Fgo window .
-        - target: a numpy array of target RGB value.
-        '''
-        pass
     
         
     def use_skill(self, skills):
         # position of skills:
+        echo_info('START', 'Using skills:')
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021, 0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
         ski_y = 0.8009
         # snap = 0.0734
         for i in skills:
             # SKILL_SLEEP_TIME = 0.8
-            self.click_act(ski_x[i], ski_y, 3)
+            self.click_act(ski_x[i], ski_y, 2.5)
               
         
     def attack(self):
+        echo_info('INFO', 'Start attacking...')
         # attack icon position:
         atk_ico_x = 0.8823
         atk_ico_y = 0.8444
@@ -178,17 +172,18 @@ class Fgo(object):
         # use ultimate atk card:
         if USE_ULTIMATE:
             # ultimate card position:
+            time.sleep(0.5)
             ult_x = [0.3171, 0.5005, 0.6839]
             ult_y = 0.2833
             for x in ult_x:
-                self.click_act(x, ult_y, 0.2)
+                self.click_act(x, ult_y, 0.1)
         
         # use normal atk card:
         # normal atk card position:
         atk_card_x = [0.1003+0.2007*x for x in range(5)]
         atk_card_y = 0.7019
         for i in range(3):
-            self.click_act(atk_card_x[i], atk_card_y, 0.2)
+            self.click_act(atk_card_x[i], atk_card_y, 0.1)
             
             
     def surveil(self, x1, y1, x2, y2, name=None, save_img=False):
@@ -211,9 +206,6 @@ class Fgo(object):
             end = time.time()
             print('[SURVEIL {}] Surveiling in area {}, Time use: {}'.format(
                 time.strftime('%H:%M:%S'), name, end-beg))
-            
-            # click the center of screen to skip something.
-            # self.click_act(0.5, 0.5, 0) 
         return -1
     
     
@@ -226,82 +218,196 @@ class Fgo(object):
         return pic_shot(x1, y1, x2, y2, name)
         
     
-    def wait_loading(self):
-        self.loading_img = './data/loading.jpg'
-        self.atk_img = './data/atk_ico.jpg'
-        real_atk = PIL.Image.open(self.atk_img)
-        real_loading = PIL.Image.open(self.loading_img)
+    def wait_loading(self, save_img=False, algo=0, sleep=None, mode=0):
+        '''
+        sample in the attack icon per 1s, if loading process is over, break the loop.
+        '''
+        real_atk = self.atk_img
+        real_loading = self.loading_img
         
         # sample1 area of attack icon:
         smp1_x1 = 0.8708
         smp1_y1 = 0.7556
         smp1_x2 = 0.8979
         smp1_y2 = 0.8009
-
-        for _ in range(100):
+        
+        for i in range(100):
             now_atk_img = self.pic_shot_float(smp1_x1, smp1_y1, smp1_x2, smp1_y2)
-            echo_info('TRY', 'detecting satus changing...')
-            diff1 = compare_img(now_atk_img, real_atk)
-            diff2 = compare_img(now_atk_img, real_loading)
+            if save_img:
+                now_atk_img.save('./data/now_loading_{}.jpg'.format(i))
+            echo_info('TRY', 'Waiting for loading...')
+            diff1 = compare_img_new(now_atk_img, real_atk, algo)
+            diff2 = compare_img_new(now_atk_img, real_loading, algo)
             
-            # print('[DEBUG] different between now and ATK is:', diff1)
-            # print('[DEBUG] different between now and LOADING is:', diff2)
-            if diff1 < diff2 and diff1 < 5:
+            if DEBUG:
+                print('[DEBUG] different between now and ATK is:', diff1)
+                print('[DEBUG] different between now and LOADING is:', diff2)
+            
+            if mode == -1:
+                condition = (diff2 == 0 and diff1 > 0)
+            else:
+                condition = (diff1 < diff2 and diff2!=0)
+                
+            if condition:
                 time.sleep(0.8)
                 echo_info('INFO', 'Detected status change.')
-                return 1
+                return diff1
+                if sleep:
+                    # wait for background anime finishing:
+                    time.sleep(sleep)
             time.sleep(1)
         return -1
     
+    
+    def cal_diff(self, x1, y1, x2, y2, target, save_img=False, hash=True):
+        '''
+        sample in the position of attack icon to find that if the game is in the loading page.
+        return a BOOL type data.
+        - x1, y1, x2, y2: the position of the origin area.
+        - save_img: if you want to save images.
+        - hash: use hash algorithm or compare image simply. 
+        '''        
+        real_loading = target
+        now_atk_img = self.pic_shot_float(x1, y1, x2, y2)
+        if save_img:
+            now_atk_img.save('./data/sample.jpg')
+        if hash:
+            return compare_img_new(now_atk_img, real_loading, 0)
+        else:
+            return 0 if now_atk_img==self.atk_img else -1
+        
+    
+    def cal_atk_diff(self, targrt, hash=True):
+        # sample1 area of attack icon:
+        smp1_x1 = 0.8708
+        smp1_y1 = 0.7556
+        smp1_x2 = 0.8979
+        smp1_y2 = 0.8009
+        
+        return self.cal_diff(smp1_x1, smp1_y1, smp1_x2, smp1_y2, self.atk_img, hash)
+    
         
     def one_turn(self):
+        '''
+        to run just one-turn battle.
+        '''
+        NUM = 2
         # Trun number position: (1298, 123), (1335, 164)
-        turn_num_x1 = 0.6760
-        turn_num_y1 = 0.1139
-        turn_num_x2 = 0.6953
-        turn_num_y2 = 0.1519
+        # turn_num_x1 = 0.6760
+        # turn_num_y1 = 0.1139
+        # turn_num_x2 = 0.6953
+        # turn_num_y2 = 0.1519
         
-        # self.use_skill(USED_SKILL)
+        # uodate saved atk icon:
+        self.diff_atk = self.cal_atk_diff(targrt=self.atk_img)
+        print('save new atk diff:', self.diff_atk)
+        
         self.attack()
+        time.sleep(3)
         
-        res = self.surveil(turn_num_x1, turn_num_y1, turn_num_x2, turn_num_y2, name='[TURN_NUMBER]', save_img=False)
-        if res == -1:
-            echo_info('ERROR', 
-                  'Can\'t detected status changing, somethin error, please reboot the program.')
-            exit()
+        diffs = []
+        # compare atk icon to the last saved icon.
+        while 1:
+            diff = self.cal_atk_diff(targrt=self.atk_img)
+            echo_info('STATUS', 'sampling in the area1, diff=:{}'.format(diff))
+            if diff == self.diff_atk:
+                n = 0
+                for _ in range(NUM):
+                    tmp = self.cal_atk_diff(targrt=self.atk_img)
+                    time.sleep(0.1)
+                    echo_info('INFO', 'last test: now diff=:{}'.format(tmp))
+                    if tmp == self.diff_atk:
+                        n += 1
+                if n==NUM:
+                    return 0
+            else:
+                diffs.append(diff)
+                if diffs[-BATTLE_END_TIMEOUT:] == [diff]*BATTLE_END_TIMEOUT and diff != LOADING_ATK_DIFF:
+                    echo_info('STATUS', 'Detected status changing, battle finished.')
+                    print('------------------------[BATTLE FINISH]--------------------------------')
+                    return 1
+                
+            # click to skip something.
+            self.click_act(0.4240, 0.1296, 0)
+            time.sleep(SURVEIL_TIME_OUT)
+        # res = self.surveil(turn_num_x1, turn_num_y1, turn_num_x2, turn_num_y2, name='[TURN_NUMBER]', save_img=DEBUG)
+
         
+    def one_turn_new(self):   
+        # sample1 area of attack icon:
+        smp1_x1 = 0.8708
+        smp1_y1 = 0.7556
+        smp1_x2 = 0.8979
+        smp1_y2 = 0.8009
+        # uodate saved atk icon:
+        self.atk_img = self.pic_shot_float(smp1_x1, smp1_y1, smp1_x2, smp1_y2)
+        print('save new atk img')
         
-    def run(self):
-        self.enter_battle(SUPPORT)
-        res = self.wait_loading()
-        if res == -1:
-            echo_info('ERROR', 
-                  'Can\'t detected status changing, somethin error, please reboot the program.')
-            exit()
-        else:
-            self.use_skill(USED_SKILL)
-            for i in range(30):
-                echo_info('INFO', 'Start turn {}'.format(i))
-                self.one_turn()
+        self.attack()
+        time.sleep(3)
+        
+        # compare atk icon to the last saved icon.
+        while 1:
+            diff = self.cal_atk_diff(targrt=self.atk_img, hash=False)
+            print('now diff is :', diff)
+            if diff == 0:
+                return diff
+            time.sleep(SURVEIL_TIME_OUT)
             
+    
+    def one_battle(self, go_on=False):
+        '''
+        main part of running the program. 
+        '''
+        if not go_on:
+            self.enter_battle(SUPPORT)
+            # wait for going into loading page:
+            time.sleep(3)
+            self.diff_atk = self.wait_loading(save_img=DEBUG, sleep=5)
+            self.use_skill(USED_SKILL)
+        
+        for i in range(30):
+            print('---------------------Turn {}---------------------'.format(i))
+            over = self.one_turn()
+            if over:
+            
+                # self.click_act(0.5, 0.5, 2)
+                # self.click_act(0.5, 0.5, 1)
+                
+                
+                # 'next' icon.
+                end_x = 0.8667
+                end_y = 0.9417
+                self.click_act(end_x, end_y, 1)
+                
+                break
+
+    def run(self):
+        for _ in range(EPOCH):
+            self.one_battle()
+            time.sleep(8)
+                    
+                  
+
         
 
-        
 
-
-# In[11]:
+# In[4]:
 
 
 fgo = Fgo(full_screen=False, sleep=False)
-fgo.run()
-# res = fgo.surveil(turn_num_x1, turn_num_y1, turn_num_x2, turn_num_y2, name='[TURN_NUMBER]', save_img=True)
-# a = fgo.pic_shot_float(turn_num_x1, turn_num_y1, turn_num_x2, turn_num_y2)
-# a.save('a.jpg')
+fgo.one_battle(go_on=False)
 
 
-# In[13]:
+# In[5]:
 
 
-x, y = (1335, 164)
+x, y = (814, 140)
 x/1920, y/1080
+
+
+# In[ ]:
+
+
+SURVEIL_TIME_OUT
 

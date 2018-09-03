@@ -1,16 +1,17 @@
 
 # coding: utf-8
 
-# In[2]:
+# In[1]:
 
 
 import PIL
 from PIL import ImageGrab
 import time 
 import numpy as np
+import cv2
 
 
-# In[5]:
+# In[2]:
 
 
 def pic_shot(x1, y1, x2, y2, fname=None):
@@ -24,14 +25,14 @@ def pic_shot(x1, y1, x2, y2, fname=None):
     return img
 
 
-# In[4]:
+# In[3]:
 
 
 def echo_info(name, info):
     print('[{} {}] '.format(name, time.strftime('%H:%M:%S')) + info)
 
 
-# In[7]:
+# In[4]:
 
 
 def getColor(img, x, y):
@@ -43,7 +44,7 @@ def getColor(img, x, y):
     return pix
 
 
-# In[28]:
+# In[5]:
 
 
 RESIZE_W = 9
@@ -81,13 +82,69 @@ def compare_img(img1, img2):
     diff = (int(dhash1, 16)) ^ (int(dhash2, 16))
     return bin(diff).count("1")
 
-    
 
 
-# In[31]:
+# In[6]:
 
 
-# img = pic_shot(0, 0, 400, 200)
-# compare_img(img, img2)
-# getColor(img, 10, 45)
+def get_global_color(img):
+    img = np.array(img)
+    color = [a[:, :, x].mean() for x in range(3)]
+    return np.array(color)
+
+def compare_RGB(img1, img2):
+    c1 = get_global_color(img1)
+    c2 = get_global_color(img2)
+    return np.sqrt(np.sum([(c1[i]-c2[i])**2 for i in range(3)]))
+
+
+# In[9]:
+
+
+def aHash(img):
+    img = np.array(img)
+    img=cv2.resize(img,(8,8),interpolation=cv2.INTER_CUBIC)
+    gray=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    s=0
+    hash_str=''
+    for i in range(8):
+        for j in range(8):
+            s=s+gray[i,j]
+    avg=s/64
+    for i in range(8):
+        for j in range(8):
+            if  gray[i,j]>avg:
+                hash_str=hash_str+'1'
+            else:
+                hash_str=hash_str+'0'            
+    return hash_str
+
+def dHash(img):
+    img = np.array(img)
+    img=cv2.resize(img,(9,8),interpolation=cv2.INTER_CUBIC)
+    gray=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    hash_str=''
+    for i in range(8):
+        for j in range(8):
+            if   gray[i,j]>gray[i,j+1]:
+                hash_str=hash_str+'1'
+            else:
+                hash_str=hash_str+'0'
+    return hash_str
+
+def cmpHash(hash1,hash2):
+    n=0
+    if len(hash1)!=len(hash2):
+        return -1
+    for i in range(len(hash1)):
+        if hash1[i]!=hash2[i]:
+            n=n+1
+    return n
+
+def compare_img_new(img1, img2, algo):
+    hash = aHash if algo==0 else dHash
+    h1 = hash(img1)
+    h2 = hash(img2)
+    return cmpHash(h1, h2)
+
 
