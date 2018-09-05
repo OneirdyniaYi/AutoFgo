@@ -3,7 +3,8 @@
 
 ### Usage 
 
-see `config.py`
+- edit `config.py`
+- then run `Fgo_win32.py`
 
 ### Requirements
 

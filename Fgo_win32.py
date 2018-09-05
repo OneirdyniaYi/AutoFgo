@@ -5,7 +5,7 @@
 
 
 # [TODO] 
-# - 使用感知哈希智能出牌
+# - 使用感知hash智能出牌
 
 import win32api, win32con, win32gui, win32ui
 import PIL
@@ -13,7 +13,7 @@ import time
 from config import *
 import numpy as np
 from utils import compare_img, pic_shot, compare_RGB, echo_info, compare_img_new
-LOADING_ATK_DIFF = 33
+SKILL_CD = YOUR_SKILL_CD + (SUPPORT_SKILL_CD, )*3
 
 
 # In[2]:
@@ -86,7 +86,7 @@ class Fgo(object):
             if sleep:
                 for x in range(3):
                     echo_info('INFO', 
-                          'Program will start in %d s, make sure the game window not covered.' % (5-x))
+                          'Program will start in %d s, make sure the game window not covered.' % (3-x))
                     time.sleep(1)
 
             self.width = abs(self.scr_pos2[0] - self.scr_pos1[0])
@@ -105,7 +105,8 @@ class Fgo(object):
         
         # get a screen shot of menu icon:
         self.menu_img = self.pic_shot_float(self.menu_x1, self.menu_y1, self.menu_x2, self.menu_y2)
-        
+        if DEBUG:
+            self.menu_img.save('./data/menu.jpg')
         
         print('\n---------------------[init over]---------------------------')
         #print('[DEBUG {}] Window width(x) = {}, height(y) = {}'.format(
@@ -122,10 +123,14 @@ class Fgo(object):
         pos = self._set(float_x, float_y)
         self.c.move_to(pos)
         if click:
-            self.c.click()
+            try:
+                self.c.click()
+            except:
+                echo_info('ERROR', 'Screen locked. You can ignore this message.')
+                pass
         if not DEBUG:
             echo_info('INFO', 
-                     'simulate click at position: [{}]'.format(pos))
+                     'simulate click at position: {}'.format(pos))
         time.sleep(sleep_time)
         
     
@@ -239,13 +244,13 @@ class Fgo(object):
             now_atk_img = self.pic_shot_float(smp1_x1, smp1_y1, smp1_x2, smp1_y2)
             if save_img:
                 now_atk_img.save('./data/now_loading_{}.jpg'.format(i))
-            echo_info('TRY', 'Waiting for loading...')
+            echo_info('INFO', 'Waiting for loading...Surveil in area sample 1.')
             diff1 = compare_img_new(now_atk_img, real_atk, algo)
             diff2 = compare_img_new(now_atk_img, real_loading, algo)
             
             if DEBUG:
-                print('[DEBUG] different between now and ATK is:', diff1)
-                print('[DEBUG] different between now and LOADING is:', diff2)
+                print('[DEBUG] diff between now_img and ATK is:', diff1)
+                print('[DEBUG] diff between now_img and LOADING is:', diff2)
             
             if mode == -1:
                 condition = (diff2 == 0 and diff1 > 0)
@@ -260,6 +265,8 @@ class Fgo(object):
                     # wait for background anime finishing:
                     time.sleep(sleep)
             time.sleep(1)
+            
+        echo_info('ERROR', 'Connection timeout. Maybe there are some problems with your network.')
         return -1
     
     
@@ -307,7 +314,7 @@ class Fgo(object):
         
         # uodate saved atk icon:
         self.diff_atk = self.cal_atk_diff(targrt=self.atk_img)
-        print('save new atk diff:', self.diff_atk)
+        echo_info('INFO', 'save new atk diff:= {}'.format(self.diff_atk))
         
         self.attack()
         time.sleep(3)
@@ -347,7 +354,7 @@ class Fgo(object):
         smp1_y2 = 0.8009
         # uodate saved atk icon:
         self.new_atk_img = self.pic_shot_float(smp1_x1, smp1_y1, smp1_x2, smp1_y2)
-        echo_info('INFO', 'Save new atk img.')
+        echo_info('INFO', 'Save new sample img in area 1.')
         
         self.attack()
         time.sleep(3)
@@ -356,23 +363,31 @@ class Fgo(object):
         while 1:
             now_atk_img = self.pic_shot_float(smp1_x1, smp1_y1, smp1_x2, smp1_y2)
             if now_atk_img == self.new_atk_img:
-                echo_info('STATUS', 'Catch status changing, continue running...')
+                echo_info('STATUS', 'Catch status changing in area 1, continue running...')
                 return 0
             else:
+                echo_info('STATUS', 'No change detected in area 1.')
                 now_menu_img = self.pic_shot_float(self.menu_x1, self.menu_y1, self.menu_x2, self.menu_y2)
-                if now_menu_img  == self.menu_img:
-                    echo_info('STATUS', 'Detected status changing, battle finished.')
-                    print('------------------------[BATTLE FINISH]--------------------------------\n')
-                    return 1
-                # click to skip something.
-                self.click_act(0.7771, 0.9370, 1)
                 
+                if DEBUG:
+                    diff = compare_img_new(self.menu_img, now_menu_img, algo=1)
+                    echo_info('INFO', 'Menu img diff:={}'.format(diff))
+                    now_menu_img.save('./data/now_menu.jpg')
+                    
+                if now_menu_img  == self.menu_img:
+                    echo_info('STATUS', 'Detected new status changing, battle finished.')
+                    print('------------------------[BATTLE FINISH]----------------------------\n')
+                    return 1
+                
+            # click to skip something
+            self.click_act(0.7771, 0.9370, 1)          
             time.sleep(SURVEIL_TIME_OUT)
+            
             
     def reuse_skill(self, cd_num):
         skills = []
-        for i in range(len(YOUR_SKILL_CD)):
-            if YOUR_SKILL_CD[i] == cd_num:
+        for i in range(len(SKILL_CD)):
+            if SKILL_CD[i] == cd_num:
                 skills.append(i)
         if len(skills):
             self.use_skill(skills, timeout=SKILL_SLEEP_TIME)
@@ -389,13 +404,16 @@ class Fgo(object):
             self.enter_battle(SUPPORT)
             # wait for going into loading page:
             time.sleep(3.5)
-            self.diff_atk = self.wait_loading(save_img=DEBUG, sleep=5)
-            self.use_skill(USED_SKILL, timeout=SKILL_SLEEP_TIME)
+            self.diff_atk = self.wait_loading(save_img=False, sleep=5.5)
+            if USE_SKILL:
+                self.use_skill(USED_SKILL, timeout=SKILL_SLEEP_TIME)
         
         for i in range(30):
-            echo_info('INFO', 'Start turn {}'.format(i))
-            # self.use_skill(USED_SKILL, timeout=0.05)
-            self.reuse_skill(i)
+            echo_info('INFO', '--------Start Turn {}--------'.format(i+1))
+            
+            # Here CD_num == i
+            if USE_SKILL:
+                self.reuse_skill(i)
             over = self.one_turn_new()
             
             if over:
@@ -425,15 +443,25 @@ class Fgo(object):
             print('-----------------------[EPOCH {}]-----------------------------'.format(j))
             self.one_battle() 
             self.use_apple(j+1)
+            
+            # between battles:
             time.sleep(1)
-                
+
+            
 
 
 # In[4]:
 
 
-fgo = Fgo(full_screen=FULL_SCREEN, sleep=True)
-#fgo.one_battle(go_on=True)
-fgo.run()
+if __name__ == '__main__':
+    fgo = Fgo(full_screen=False, sleep=False)
+    #fgo.one_battle(go_on=True)
+    fgo.run()
 
+
+# In[ ]:
+
+
+# x, y = (1260, 845)
+# x/1920, y/1080
 

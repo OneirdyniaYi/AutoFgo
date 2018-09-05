@@ -8,7 +8,7 @@ FULL_SCREEN = False
 
 # num of battles you want to run:
 # type: int
-EPOCH = 20
+EPOCH = 5
 
 # num 0~8, options: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
 # type: int
@@ -25,18 +25,28 @@ USE_ULTIMATE = True
 # type: bool
 USE_SKILL = True
 
-# CD turns of each skill(set all skills, although you won't use all of them):
+# set small number to avoid bugs of skill using caused by servants' death.
+# set 0 to skip using skills.
+# type: int 
+# USE_SKILL_TIMES = 2
+
+# CD turns of each skill of YOUR SERVANTS.(set all skills, although you won't use all of them):
 # the Nth num is the Nth skill's CD time, without support servant.
 # type: int
-YOUR_SKILL_CD = (30, 30, 30, 30, 30, 30)
+YOUR_SKILL_CD = (7, 8, 7, 6, 8, 9)
+
+# set a big number to ensure that skills won't be used wrongly.
+# type: int
+SUPPORT_SKILL_CD = 8
 
 # skills list:
-# type: tuple
+# type: tuple, num start from 0
 USED_SKILL = (0, 1, 2, 3, 4, 5, 6, 7, 8)     # reset the order of numbers to change skill orders.
 
 # time to sleep after using skills:
+# you'd better keep the default value.
 # type: float
-SKILL_SLEEP_TIME = 2.5    
+SKILL_SLEEP_TIME = 2.5
 
 
 # # use master's skill or not 
@@ -47,7 +57,7 @@ SKILL_SLEEP_TIME = 2.5
 
 # Surveillance timeout in sample 1(atk icon):
 # type: float
-SURVEIL_TIME_OUT = 0.2
+SURVEIL_TIME_OUT = 0.5
 
 
 # ----------------------------[APPLE USING]---------------------------------
@@ -56,12 +66,12 @@ SURVEIL_TIME_OUT = 0.2
 USE_APPLE_PER = False
 
 # additions of apple using, set numbers for epoch No. Use apple AFTER that epoch.
-# type: tuple
-USE_APPLE_ADDITION = (1, 4)
+# type: tuple, num start from 1
+USE_APPLE_ADDITION = ( )
 
 # details of don't using apple, if there are conflicts, it will cover `USE_APPLE_DETAIL` and 'APPLE_USE'.
-# type: tuple
-DONT_USE_APPLE = ()
+# type: tuple, num start from 1
+DONT_USE_APPLE = ( )
 
 # ----------------------------[DON'T EDIT]-----------------------------------
 # [WARRNING] dont't edit the following code.
