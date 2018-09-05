@@ -98,10 +98,16 @@ class Fgo(object):
         self.atk_img = PIL.Image.open('./data/atk_ico.jpg')
         
         # menu position: (1710, 1005), (1850, 1057)
-        self.menu_x1 = 0.8906
-        self.menu_y1 = 0.9306
-        self.menu_x2 = 0.9635
-        self.menu_y2 = 0.9787
+        # self.menu_x1 = 0.8906
+        # self.menu_y1 = 0.9306
+        # self.menu_x2 = 0.9635
+        # self.menu_y2 = 0.9787
+        # ------------------------------------------
+        # avator position:
+        self.menu_x1 = 0.0693
+        self.menu_y1 = 0.7889
+        self.menu_x2 = 0.1297
+        self.menu_y2 = 0.8917
         
         # get a screen shot of menu icon:
         self.menu_img = self.pic_shot_float(self.menu_x1, self.menu_y1, self.menu_x2, self.menu_y2)
@@ -309,9 +315,6 @@ class Fgo(object):
         # turn_num_x2 = 0.6953
         # turn_num_y2 = 0.1519
         
-        # next icon:
-        
-        
         # uodate saved atk icon:
         self.diff_atk = self.cal_atk_diff(targrt=self.atk_img)
         echo_info('INFO', 'save new atk diff:= {}'.format(self.diff_atk))
@@ -366,7 +369,6 @@ class Fgo(object):
                 echo_info('STATUS', 'Catch status changing in area 1, continue running...')
                 return 0
             else:
-                echo_info('STATUS', 'No change detected in area 1.')
                 now_menu_img = self.pic_shot_float(self.menu_x1, self.menu_y1, self.menu_x2, self.menu_y2)
                 
                 if DEBUG:
@@ -378,10 +380,12 @@ class Fgo(object):
                     echo_info('STATUS', 'Detected new status changing, battle finished.')
                     print('------------------------[BATTLE FINISH]----------------------------\n')
                     return 1
+                else:
+                    echo_info('STATUS', 'No change detected in area 1.')
                 
             # click to skip something
-            self.click_act(0.7771, 0.9370, 1)          
-            time.sleep(SURVEIL_TIME_OUT)
+            self.click_act(0.7771, 0.9370, 1)
+            # time.sleep(SURVEIL_TIME_OUT)
             
             
     def reuse_skill(self, cd_num):
@@ -407,6 +411,8 @@ class Fgo(object):
             self.diff_atk = self.wait_loading(save_img=False, sleep=5.5)
             if USE_SKILL:
                 self.use_skill(USED_SKILL, timeout=SKILL_SLEEP_TIME)
+            else:
+                time.sleep(2)
         
         for i in range(30):
             echo_info('INFO', '--------Start Turn {}--------'.format(i+1))
@@ -462,6 +468,6 @@ if __name__ == '__main__':
 # In[ ]:
 
 
-# x, y = (1260, 845)
-# x/1920, y/1080
+x, y = (133, 852)
+x/1920, y/1080
 

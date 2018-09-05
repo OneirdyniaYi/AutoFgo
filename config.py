@@ -1,6 +1,6 @@
 # debug mode:
 # type: bool
-DEBUG = False
+DEBUG = True
 
 # set full screen mode to get better effect.
 # type: bool
@@ -8,7 +8,7 @@ FULL_SCREEN = False
 
 # num of battles you want to run:
 # type: int
-EPOCH = 5
+EPOCH = 4
 
 # num 0~8, options: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
 # type: int
@@ -18,12 +18,12 @@ SUPPORT = 7     # default berserker
 # ----------------------------[BATTLE SETTING]---------------------------------
 # use ultimate skill or not:
 # type: bool
-USE_ULTIMATE = True
+USE_ULTIMATE = False
 
 # use servants' skill or not:
 # [WARNING]: skills can't select the target, Take effect immediately.
 # type: bool
-USE_SKILL = True
+USE_SKILL = False
 
 # set small number to avoid bugs of skill using caused by servants' death.
 # set 0 to skip using skills.
@@ -67,7 +67,7 @@ USE_APPLE_PER = False
 
 # additions of apple using, set numbers for epoch No. Use apple AFTER that epoch.
 # type: tuple, num start from 1
-USE_APPLE_ADDITION = ( )
+USE_APPLE_ADDITION = ()
 
 # details of don't using apple, if there are conflicts, it will cover `USE_APPLE_DETAIL` and 'APPLE_USE'.
 # type: tuple, num start from 1
