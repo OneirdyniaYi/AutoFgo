@@ -1,3 +1,14 @@
+# Author: Why
+
+# Advanced work:
+# - Skip the confirming of using skills.
+# - set battle speed to 2x
+# - make sure your team formation has been finished.
+# - set the proper order of support servants.
+# - edit the following settings each time you run main.py.
+
+
+# ------------------------------User Settings----------------------------------
 # debug mode:
 # type: bool
 DEBUG = True
@@ -8,22 +19,22 @@ FULL_SCREEN = False
 
 # num of battles you want to run:
 # type: int
-EPOCH = 4
+EPOCH = 3
 
 # num 0~8, options: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
 # type: int
-SUPPORT = 7     # default berserker
+SUPPORT = 6     # default berserker
 
 
 # ----------------------------[BATTLE SETTING]---------------------------------
 # use ultimate skill or not:
 # type: bool
-USE_ULTIMATE = False
+USE_ULTIMATE = True
 
 # use servants' skill or not:
 # [WARNING]: skills can't select the target, Take effect immediately.
 # type: bool
-USE_SKILL = False
+USE_SKILL = True
 
 # set small number to avoid bugs of skill using caused by servants' death.
 # set 0 to skip using skills.
@@ -33,7 +44,7 @@ USE_SKILL = False
 # CD turns of each skill of YOUR SERVANTS.(set all skills, although you won't use all of them):
 # the Nth num is the Nth skill's CD time, without support servant.
 # type: int
-YOUR_SKILL_CD = (7, 8, 7, 6, 8, 9)
+YOUR_SKILL_CD = (9, 7, 9, 6, 8, 9)
 
 # set a big number to ensure that skills won't be used wrongly.
 # type: int
@@ -57,7 +68,7 @@ SKILL_SLEEP_TIME = 2.5
 
 # Surveillance timeout in sample 1(atk icon):
 # type: float
-SURVEIL_TIME_OUT = 0.5
+# SURVEIL_TIME_OUT = 0.5
 
 
 # ----------------------------[APPLE USING]---------------------------------

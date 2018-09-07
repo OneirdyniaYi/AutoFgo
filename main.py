@@ -1,4 +1,4 @@
-
+# new bug : 战斗结束后回到菜单界面继续点击。
 # coding: utf-8
 
 # In[1]:
@@ -158,7 +158,7 @@ class Fgo(object):
         
         self.click_act(sup_ico_x, sup_ico_y, 0.5)
         self.click_act(sup_tag_x, sup_tag_y, 1.3)
-        
+
         # game start
         # postion of `mission start` tag
         start_x = 0.9281
@@ -357,6 +357,8 @@ class Fgo(object):
         smp1_y2 = 0.8009
         # uodate saved atk icon:
         self.new_atk_img = self.pic_shot_float(smp1_x1, smp1_y1, smp1_x2, smp1_y2)
+        if DEBUG:
+            self.new_atk_img.save('./data/save_new_atk.jpg')
         echo_info('INFO', 'Save new sample img in area 1.')
         
         self.attack()
@@ -408,7 +410,7 @@ class Fgo(object):
             self.enter_battle(SUPPORT)
             # wait for going into loading page:
             time.sleep(3.5)
-            self.diff_atk = self.wait_loading(save_img=False, sleep=5.5)
+            self.diff_atk = self.wait_loading(save_img=DEBUG, sleep=5.5)
             if USE_SKILL:
                 self.use_skill(USED_SKILL, timeout=SKILL_SLEEP_TIME)
             else:
@@ -420,6 +422,7 @@ class Fgo(object):
             # Here CD_num == i
             if USE_SKILL:
                 self.reuse_skill(i)
+                time.sleep(1)
             over = self.one_turn_new()
             
             if over:
@@ -461,7 +464,7 @@ class Fgo(object):
 
 if __name__ == '__main__':
     fgo = Fgo(full_screen=False, sleep=False)
-    #fgo.one_battle(go_on=True)
+    # fgo.one_battle(go_on=True)
     fgo.run()
 
 
