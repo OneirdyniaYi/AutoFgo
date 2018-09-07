@@ -1,4 +1,4 @@
-# new bug : 战斗结束后回到菜单界面继续点击。
+
 # coding: utf-8
 
 # In[1]:
@@ -249,7 +249,7 @@ class Fgo(object):
         for i in range(100):
             now_atk_img = self.pic_shot_float(smp1_x1, smp1_y1, smp1_x2, smp1_y2)
             if save_img:
-                now_atk_img.save('./data/now_loading_{}.jpg'.format(i))
+                now_atk_img.save('./data/now_loading.jpg')
             echo_info('INFO', 'Waiting for loading...Surveil in area sample 1.')
             diff1 = compare_img_new(now_atk_img, real_atk, algo)
             diff2 = compare_img_new(now_atk_img, real_loading, algo)
@@ -449,7 +449,7 @@ class Fgo(object):
                 
     def run(self):
         for j in range(EPOCH):
-            print('-----------------------[EPOCH {}]-----------------------------'.format(j))
+            print('--------------------------[BATTLE EPOCH {}]--------------------------'.format(j+1))
             self.one_battle() 
             self.use_apple(j+1)
             
@@ -463,7 +463,7 @@ class Fgo(object):
 
 
 if __name__ == '__main__':
-    fgo = Fgo(full_screen=False, sleep=False)
+    fgo = Fgo(full_screen=FULL_SCREEN, sleep=False)
     # fgo.one_battle(go_on=True)
     fgo.run()
 
@@ -471,6 +471,6 @@ if __name__ == '__main__':
 # In[ ]:
 
 
-x, y = (133, 852)
-x/1920, y/1080
+# x, y = (133, 852)
+# x/1920, y/1080
 

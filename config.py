@@ -23,18 +23,18 @@ EPOCH = 3
 
 # num 0~8, options: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
 # type: int
-SUPPORT = 6     # default berserker
+SUPPORT = 4     # default berserker:=7
 
 
 # ----------------------------[BATTLE SETTING]---------------------------------
 # use ultimate skill or not:
 # type: bool
-USE_ULTIMATE = True
+USE_ULTIMATE = False
 
 # use servants' skill or not:
 # [WARNING]: skills can't select the target, Take effect immediately.
 # type: bool
-USE_SKILL = True
+USE_SKILL = False
 
 # set small number to avoid bugs of skill using caused by servants' death.
 # set 0 to skip using skills.
@@ -44,7 +44,7 @@ USE_SKILL = True
 # CD turns of each skill of YOUR SERVANTS.(set all skills, although you won't use all of them):
 # the Nth num is the Nth skill's CD time, without support servant.
 # type: int
-YOUR_SKILL_CD = (9, 7, 9, 6, 8, 9)
+YOUR_SKILL_CD = (7, 8, 7, 6, 8, 9)
 
 # set a big number to ensure that skills won't be used wrongly.
 # type: int
