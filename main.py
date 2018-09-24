@@ -157,7 +157,7 @@ class Fgo(object):
         sup_ico_y = 0.1796
         
         self.click_act(sup_ico_x, sup_ico_y, 0.5)
-        self.click_act(sup_tag_x, sup_tag_y, 1.3)
+        self.click_act(sup_tag_x, sup_tag_y, 2)
 
         # game start
         # postion of `mission start` tag
@@ -173,7 +173,8 @@ class Fgo(object):
         ski_y = 0.8009
         # snap = 0.0734
         for i in skills:
-            self.click_act(ski_x[i], ski_y, timeout)
+            self.click_act(ski_x[i], ski_y, 0.5)
+            self.click_act(0.5, 0.5, timeout-0.5)
               
         
     def attack(self):
@@ -198,7 +199,7 @@ class Fgo(object):
         atk_card_x = [0.1003+0.2007*x for x in range(5)]
         atk_card_y = 0.7019
         for i in range(3):
-            self.click_act(atk_card_x[i], atk_card_y, 0.1)
+            self.click_act(atk_card_x[i], atk_card_y, 0.2)
             
             
     def surveil(self, x1, y1, x2, y2, name=None, save_img=False):
@@ -464,7 +465,8 @@ class Fgo(object):
 
 if __name__ == '__main__':
     fgo = Fgo(full_screen=FULL_SCREEN, sleep=False)
-    # fgo.one_battle(go_on=True)
+    #fgo.one_battle(go_on=True)
+    # fgo.use_skill((1, 2))
     fgo.run()
 
 
