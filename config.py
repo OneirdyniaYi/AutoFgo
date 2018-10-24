@@ -44,11 +44,14 @@ USE_SKILL = True
 # CD turns of each skill of YOUR SERVANTS.(set all skills, although you won't use all of them):
 # the Nth num is the Nth skill's CD time, without support servant.
 # type: int
-YOUR_SKILL_CD = (5, 7, 6, 6, 8, 9)
+YOUR_SKILL_CD = (9, 7, 9, 6, 8, 9)    # 酒吞
+# YOUR_SKILL_CD = (7, 7, 12, 6, 8, 9)  # 恩奇都
+
+
 
 # set a big number to ensure that skills won't be used wrongly.
 # type: int
-SUPPORT_SKILL_CD = 8
+SUPPORT_SKILL_CD = 10
 
 # skills list:
 # type: tuple, num start from 0
@@ -58,6 +61,7 @@ USED_SKILL = (0, 1, 2, 3, 4, 5, 6, 7, 8)     # reset the order of numbers to cha
 # you'd better keep the default value.
 # type: float
 SKILL_SLEEP_TIME = 2.5
+
 
 
 # # use master's skill or not 

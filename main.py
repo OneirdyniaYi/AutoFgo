@@ -156,7 +156,7 @@ class Fgo(object):
         sup_ico_x = 0.0729+0.0527*supNo
         sup_ico_y = 0.1796
         
-        self.click_act(sup_ico_x, sup_ico_y, 0.5)
+        self.click_act(sup_ico_x, sup_ico_y, 0.8)
         self.click_act(sup_tag_x, sup_tag_y, 2)
 
         # game start
