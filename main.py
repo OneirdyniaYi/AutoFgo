@@ -12,9 +12,11 @@ import PIL
 import time
 from config import *
 import numpy as np
+import logging
 from utils import compare_img, pic_shot, compare_RGB, echo_info, compare_img_new
 SKILL_CD = YOUR_SKILL_CD + (SUPPORT_SKILL_CD, )*3
-
+CURRENT_EPOCH = 0
+logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s - %(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M')
 
 # In[2]:
 
@@ -54,30 +56,28 @@ class Fgo(object):
             self.scr_pos2 = (self.width, self.height)
             self.c = Cursor(init_pos=False)
             for x in range(5):
-                echo_info('INFO', 
-                          'Program will start in %d s, Please enter FULL SCREEN MODE.' % (5-x))
+                
+                logging.info('Program will start in %d s, Please enter FULL SCREEN MODE.' % (5-x))
                 time.sleep(1)
             
         else:
             self.c = Cursor(init_pos=False)
             while 1:
-                in1 = input('[INFO {}] Move cursor to the top-left cornor of Fgo screen, and press ENTER(enter q to exit):'.format(
+                in1 = input('[{} - INFO]: Move cursor to the top-left cornor of Fgo screen, and press ENTER(enter q to exit):'.format(
                     time.strftime('%H:%M:%S')))
                 if in1 == 'q':
                     exit()
                 self.scr_pos1 = self.c.get_pos()
-                echo_info('INFO', 
-                          'Get cursor at {}'.format(self.scr_pos1))
+                logging.info('Get cursor at {}'.format(self.scr_pos1))
                 
-                in2 = input('[INFO {}] Move cursor to the down-right cornor of Fgo screen, and press ENTER(enter q to exit):'.format(
+                in2 = input('[{} - INFO]: Move cursor to the down-right cornor of Fgo screen, and press ENTER(enter q to exit):'.format(
                     time.strftime('%H:%M:%S')))
                 if in2 == 'q':
                     exit()
                 self.scr_pos2 = self.c.get_pos()
-                echo_info('INFO', 
-                          'Get cursor at {}'.format(self.scr_pos2))
+                logging.info('Get cursor at {}'.format(self.scr_pos2))
                 
-                res = input('[INFO {}] Continue?[y/n](y to continue, n to reset cursor):'.format(
+                res = input('[{} - INFO]: Continue?[y/n](y to continue, n to reset cursor):'.format(
                     time.strftime('%H:%M:%S')))
                 if res == 'n':
                     continue
@@ -85,8 +85,7 @@ class Fgo(object):
                     break
             if sleep:
                 for x in range(3):
-                    echo_info('INFO', 
-                          'Program will start in %d s, make sure the game window not covered.' % (3-x))
+                    logging.info('Program will start in %d s, make sure the game window not covered.' % (3-x))
                     time.sleep(1)
 
             self.width = abs(self.scr_pos2[0] - self.scr_pos1[0])
@@ -113,8 +112,7 @@ class Fgo(object):
         self.menu_img = self.pic_shot_float(self.menu_x1, self.menu_y1, self.menu_x2, self.menu_y2)
         if DEBUG:
             self.menu_img.save('./data/menu.jpg')
-        
-        print('\n---------------------[init over]---------------------------')
+
         #print('[DEBUG {}] Window width(x) = {}, height(y) = {}'.format(
         #    time.strftime('%H:%M:%S'), self.width, self.height))
         
@@ -132,11 +130,10 @@ class Fgo(object):
             try:
                 self.c.click()
             except:
-                echo_info('ERROR', 'Screen locked. You can ignore this message.')
+                logging.warning('Screen was locked. You can ignore this message.')
                 pass
         if not DEBUG:
-            echo_info('INFO', 
-                     'simulate click at position: {}'.format(pos))
+            logging.info('EPOCH({}/{}) - Simulate cursor click at {}'.format(CURRENT_EPOCH, EPOCH, pos))
         time.sleep(sleep_time)
         
     
@@ -168,17 +165,18 @@ class Fgo(object):
         
     def use_skill(self, skills, timeout=SKILL_SLEEP_TIME):
         # position of skills:
-        echo_info('START', 'Now using skills...')
+        print('==> Now start using skills...')
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021, 0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
         ski_y = 0.8009
         # snap = 0.0734
         for i in skills:
             self.click_act(ski_x[i], ski_y, 0.5)
-            self.click_act(0.5, 0.5, timeout-0.5)
+            self.click_act(0.5, 0.5, 0.2)
+            self.click_act(0.0521, 0.4259, timeout-0.7)
               
         
     def attack(self):
-        echo_info('INFO', 'Start attacking...')
+        print('==> Now start attacking...')
         # attack icon position:
         atk_ico_x = 0.8823
         atk_ico_y = 0.8444
@@ -199,7 +197,7 @@ class Fgo(object):
         atk_card_x = [0.1003+0.2007*x for x in range(5)]
         atk_card_y = 0.7019
         for i in range(3):
-            self.click_act(atk_card_x[i], atk_card_y, 0.2)
+            self.click_act(atk_card_x[i], atk_card_y, ATK_SLEEP_TIME)
             
             
     def surveil(self, x1, y1, x2, y2, name=None, save_img=False):
@@ -213,15 +211,14 @@ class Fgo(object):
                 img.save('./data/{}_{}.jpg'.format(name, i))
             
             now_diff = compare_img(img, last_img)
-            print('[DEBUG] now_diff={}, last_diff={}'.format(now_diff, last_diff))
+            logging.debug('Now_diff={}, Last_diff={}'.format(now_diff, last_diff))
             if now_diff > 5 and now_diff > last_diff:
-                echo_info('SURVEIL', 'Detected status change.')
+                logging.info('<MONITOR> - Detected status change.')
                 return 1
             last_diff = now_diff
             last_img = img
             end = time.time()
-            print('[SURVEIL {}] Surveiling in area {}, Time use: {}'.format(
-                time.strftime('%H:%M:%S'), name, end-beg))
+            logging.info('<MONITOR> - Monitoring at area {}, Time use: {}'.format(name, end-beg))
         return -1
     
     
@@ -251,13 +248,13 @@ class Fgo(object):
             now_atk_img = self.pic_shot_float(smp1_x1, smp1_y1, smp1_x2, smp1_y2)
             if save_img:
                 now_atk_img.save('./data/now_loading.jpg')
-            echo_info('INFO', 'Waiting for loading...Surveil in area sample 1.')
+            logging.info('<LOADING> - Monitoring at area1, sample NO1.')
             diff1 = compare_img_new(now_atk_img, real_atk, algo)
             diff2 = compare_img_new(now_atk_img, real_loading, algo)
             
             if DEBUG:
-                print('[DEBUG] diff between now_img and ATK is:', diff1)
-                print('[DEBUG] diff between now_img and LOADING is:', diff2)
+                logging.debug('Diff between now_img and ATK is:', diff1)
+                logging.debug('Diff between now_img and LOADING is:', diff2)
             
             if mode == -1:
                 condition = (diff2 == 0 and diff1 > 0)
@@ -266,14 +263,14 @@ class Fgo(object):
                 
             if condition:
                 time.sleep(0.8)
-                echo_info('INFO', 'Detected status change.')
+                logging.info('<MONITOR> - Detected status change.')
                 return diff1
                 if sleep:
                     # wait for background anime finishing:
                     time.sleep(sleep)
             time.sleep(1)
             
-        echo_info('ERROR', 'Connection timeout. Maybe there are some problems with your network.')
+        logging.error('Connection timeout. Maybe there are some problems with your network.')
         return -1
     
     
@@ -304,50 +301,51 @@ class Fgo(object):
         
         return self.cal_diff(smp1_x1, smp1_y1, smp1_x2, smp1_y2, self.atk_img, save_img=save_img, hash=hash)
     
-        
-    def one_turn(self):
-        '''
-        to run just one-turn battle.
-        '''
-        NUM = 2
-        # Trun number position: (1298, 123), (1335, 164)
-        # turn_num_x1 = 0.6760
-        # turn_num_y1 = 0.1139
-        # turn_num_x2 = 0.6953
-        # turn_num_y2 = 0.1519
-        
-        # uodate saved atk icon:
-        self.diff_atk = self.cal_atk_diff(targrt=self.atk_img)
-        echo_info('INFO', 'save new atk diff:= {}'.format(self.diff_atk))
-        
-        self.attack()
-        time.sleep(3)
-        
-        # compare atk icon to the last saved icon.
-        while 1:
-            diff = self.cal_atk_diff(targrt=self.atk_img)
-            echo_info('STATUS', 'sampling in the area1, diff=:{}'.format(diff))
-            if diff == self.diff_atk:
-                n = 0
-                for _ in range(NUM):
-                    tmp = self.cal_atk_diff(targrt=self.atk_img)
-                    time.sleep(0.1)
-                    echo_info('INFO', 'last test: now diff=:{}'.format(tmp))
-                    if tmp == self.diff_atk:
-                        n += 1
-                if n==NUM:
-                    return 0
-            else:
-                menu = self.pic_shot_float(self.menu_x1, self.menu_y1, self.menu_x2, self.menu_y2)
-                if menu == self.menu_img:
-                    echo_info('STATUS', 'Detected status changing, battle finished.')
-                    print('------------------------[BATTLE FINISH]--------------------------------')
-                    return 1
-                
-            # click to skip something.
-            self.click_act(0.7771, 0.9370, 0)
-            time.sleep(SURVEIL_TIME_OUT)
-        # res = self.surveil(turn_num_x1, turn_num_y1, turn_num_x2, turn_num_y2, name='[TURN_NUMBER]', save_img=DEBUG)
+    if DEBUG:
+        def one_turn(self):
+            '''
+            to run just one-turn battle.
+            '''
+            NUM = 2
+            # Trun number position: (1298, 123), (1335, 164)
+            # turn_num_x1 = 0.6760
+            # turn_num_y1 = 0.1139
+            # turn_num_x2 = 0.6953
+            # turn_num_y2 = 0.1519
+            
+            # uodate saved atk icon:
+            self.diff_atk = self.cal_atk_diff(targrt=self.atk_img)
+            logging.info('Save new atk diff:= {}'.format(self.diff_atk))
+            
+            self.click_act(0.1010, 0.0593, 0.1)
+            self.attack()
+            time.sleep(3)
+            
+            # compare atk icon to the last saved icon.
+            while 1:
+                diff = self.cal_atk_diff(targrt=self.atk_img)
+                echo_info('STATUS', 'sampling in the area1, diff=:{}'.format(diff))
+                if diff == self.diff_atk:
+                    n = 0
+                    for _ in range(NUM):
+                        tmp = self.cal_atk_diff(targrt=self.atk_img)
+                        time.sleep(0.1)
+                        echo_info('INFO', 'last test: now diff=:{}'.format(tmp))
+                        if tmp == self.diff_atk:
+                            n += 1
+                    if n==NUM:
+                        return 0
+                else:
+                    menu = self.pic_shot_float(self.menu_x1, self.menu_y1, self.menu_x2, self.menu_y2)
+                    if menu == self.menu_img:
+                        echo_info('STATUS', 'Detected status changing, battle finished.')
+                        print('------------------------[BATTLE FINISH]--------------------------------')
+                        return 1
+                    
+                # click to skip something.
+                self.click_act(0.7771, 0.9370, 0)
+                time.sleep(SURVEIL_TIME_OUT)
+            # res = self.surveil(turn_num_x1, turn_num_y1, turn_num_x2, turn_num_y2, name='[TURN_NUMBER]', save_img=DEBUG)
 
         
     def one_turn_new(self):   
@@ -360,8 +358,11 @@ class Fgo(object):
         self.new_atk_img = self.pic_shot_float(smp1_x1, smp1_y1, smp1_x2, smp1_y2)
         if DEBUG:
             self.new_atk_img.save('./data/save_new_atk.jpg')
-        echo_info('INFO', 'Save new sample img in area 1.')
+            logging.debug('Save new img of area1, Sample NO1.')
         
+        if ATK_BEHIND_FIRST:
+            self.click_act(0.3010, 0.0602, 0.1)
+            self.click_act(0.1010, 0.0593, 0.1)
         self.attack()
         time.sleep(3)
         
@@ -369,22 +370,22 @@ class Fgo(object):
         while 1:
             now_atk_img = self.pic_shot_float(smp1_x1, smp1_y1, smp1_x2, smp1_y2)
             if now_atk_img == self.new_atk_img:
-                echo_info('STATUS', 'Catch status changing in area 1, continue running...')
+                logging.info('<MONITOR> - Got status changingat area1, Continue running...')
                 return 0
             else:
                 now_menu_img = self.pic_shot_float(self.menu_x1, self.menu_y1, self.menu_x2, self.menu_y2)
                 
                 if DEBUG:
                     diff = compare_img_new(self.menu_img, now_menu_img, algo=1)
-                    echo_info('INFO', 'Menu img diff:={}'.format(diff))
+                    logging.debug('Menu img diff:={}'.format(diff))
                     now_menu_img.save('./data/now_menu.jpg')
                     
                 if now_menu_img  == self.menu_img:
-                    echo_info('STATUS', 'Detected new status changing, battle finished.')
-                    print('------------------------[BATTLE FINISH]----------------------------\n')
+                    logging.info('<MONITOR> - Detected status changing, battle finished.')
+                    print('------------------------< BATTLE FINISH >----------------------------')
                     return 1
                 else:
-                    echo_info('STATUS', 'No change detected in area 1.')
+                    logging.info('EPOCH({}/{}) - No change detected in area1.'.format(CURRENT_EPOCH, EPOCH))
                 
             # click to skip something
             self.click_act(0.7771, 0.9370, 1)
@@ -397,6 +398,7 @@ class Fgo(object):
             if SKILL_CD[i] == cd_num:
                 skills.append(i)
         if len(skills):
+            time.sleep(0.2)
             self.use_skill(skills, timeout=SKILL_SLEEP_TIME)
             return 1
         else:
@@ -413,12 +415,13 @@ class Fgo(object):
             time.sleep(3.5)
             self.diff_atk = self.wait_loading(save_img=DEBUG, sleep=5.5)
             if USE_SKILL:
+                time.sleep(0.2)
                 self.use_skill(USED_SKILL, timeout=SKILL_SLEEP_TIME)
             else:
                 time.sleep(2)
         
-        for i in range(30):
-            echo_info('INFO', '--------Start Turn {}--------'.format(i+1))
+        for i in range(50):
+            print('==> Start Turn {}'.format(i+1))
             
             # Here CD_num == i
             if USE_SKILL:
@@ -450,7 +453,9 @@ class Fgo(object):
                 
     def run(self):
         for j in range(EPOCH):
-            print('--------------------------[BATTLE EPOCH {}]--------------------------'.format(j+1))
+            print('\n----------------------< Battle EPOCH{} Start >----------------------'.format(j+1))
+            global CURRENT_EPOCH
+            CURRENT_EPOCH += 1
             self.one_battle() 
             self.use_apple(j+1)
             

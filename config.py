@@ -19,17 +19,35 @@ FULL_SCREEN = False
 
 # num of battles you want to run:
 # type: int
-EPOCH = 5
+EPOCH = 14
 
 # num 0~8, options: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
 # type: int
-SUPPORT = 7     # default berserker:=7
+SUPPORT = 7     # default berserker := 7 
 
+
+# ----------------------------[APPLE USING]---------------------------------
+# use apple per n battles. default use the golden apple. Please calculate it by yourself. set 'False' to skip using. 
+# type: int
+USE_APPLE_PER = False
+
+# additions of apple using, set numbers for epoch No. Use apple AFTER that epoch.
+# type: tuple, num start from 1
+APPLE0_EPOCH = False    # num of apples needed ot clear all current AP. set FALSE to change to manual mode.
+USE_APPLE_ADDITION = list(range(APPLE0_EPOCH, EPOCH-(EPOCH-2)%3+1))[::3] if APPLE0_EPOCH else ( )
+
+# details of don't using apple, if there are conflicts, it will cover `USE_APPLE_DETAIL` and 'APPLE_USE'.
+# type: tuple, num start from 1
+DONT_USE_APPLE = ( )
 
 # ----------------------------[BATTLE SETTING]---------------------------------
+# attack enemy behind firstly. `USE_ULTIMATE` may disturb this API.
+# type: bool
+ATK_BEHIND_FIRST = True
+
 # use ultimate skill or not:
 # type: bool
-USE_ULTIMATE = True
+USE_ULTIMATE = False
 
 # use servants' skill or not:
 # [WARNING]: skills can't select the target, Take effect immediately.
@@ -44,10 +62,8 @@ USE_SKILL = True
 # CD turns of each skill of YOUR SERVANTS.(set all skills, although you won't use all of them):
 # the Nth num is the Nth skill's CD time, without support servant.
 # type: int
-YOUR_SKILL_CD = (9, 7, 9, 6, 8, 9)    # 酒吞
+YOUR_SKILL_CD = (9, 7, 9, 5, 8, 9)    # 酒吞
 # YOUR_SKILL_CD = (7, 7, 12, 6, 8, 9)  # 恩奇都
-
-
 
 # set a big number to ensure that skills won't be used wrongly.
 # type: int
@@ -60,9 +76,12 @@ USED_SKILL = (0, 1, 2, 3, 4, 5, 6, 7, 8)     # reset the order of numbers to cha
 # time to sleep after using skills:
 # you'd better keep the default value.
 # type: float
-SKILL_SLEEP_TIME = 2.5
+SKILL_SLEEP_TIME = 2.8
 
-
+# time to sleep after clicking atk cards:
+# you'd better keep the default value.
+# type: float
+ATK_SLEEP_TIME = 0.15
 
 # # use master's skill or not 
 # USE_MASTER_SKILL = True
@@ -75,21 +94,8 @@ SKILL_SLEEP_TIME = 2.5
 # SURVEIL_TIME_OUT = 0.5
 
 
-# ----------------------------[APPLE USING]---------------------------------
-# use apple per n battles. default use the golden apple. Please calculate by yourself. set 'False' to skip using. 
-# type: int
-USE_APPLE_PER = False
-
-# additions of apple using, set numbers for epoch No. Use apple AFTER that epoch.
-# type: tuple, num start from 1
-USE_APPLE_ADDITION = ( )
-
-# details of don't using apple, if there are conflicts, it will cover `USE_APPLE_DETAIL` and 'APPLE_USE'.
-# type: tuple, num start from 1
-DONT_USE_APPLE = ( )
-
 # ----------------------------[DON'T EDIT]-----------------------------------
-# [WARRNING] dont't edit the following code.
+# [WARRNING] dont't edit the following code unless you know what you are doing.
 
 # run config.py to judge that if your screen settings are well-worked.
 from PIL import ImageGrab
