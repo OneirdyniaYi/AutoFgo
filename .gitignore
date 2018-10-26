@@ -1,8 +1,10 @@
 fgo_img
 *.ipynb
 *.log
-*.bak
+*.LOG
+*.bak*
 *.pyc
 __pycache__
 .ipynb_checkpoints
 .vscode
+*.jpg

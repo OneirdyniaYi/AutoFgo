@@ -19,7 +19,7 @@ FULL_SCREEN = False
 
 # num of battles you want to run:
 # type: int
-EPOCH = 14
+EPOCH = 3
 
 # num 0~8, options: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
 # type: int
@@ -47,7 +47,7 @@ ATK_BEHIND_FIRST = True
 
 # use ultimate skill or not:
 # type: bool
-USE_ULTIMATE = False
+USE_ULTIMATE = True
 
 # use servants' skill or not:
 # [WARNING]: skills can't select the target, Take effect immediately.
@@ -92,6 +92,14 @@ ATK_SLEEP_TIME = 0.15
 # Surveillance timeout in sample 1(atk icon):
 # type: float
 # SURVEIL_TIME_OUT = 0.5
+
+#----------------------------[SYNC SETTING]-----------------------------------
+SEND_MAIL = True
+FROM_ADDRESS = '344915973@qq.com'
+PASSWD = 'kqddfbmxiipqcaeg'
+TO_ADDRESS = '694029828@qq.com'
+SMTP_SERVER = 'smtp.qq.com'
+SMTP_PORT = 465
 
 
 # ----------------------------[DON'T EDIT]-----------------------------------
