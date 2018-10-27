@@ -27,18 +27,18 @@ SUPPORT = 7     # default berserker := 7
 
 
 # ----------------------------[APPLE USING]---------------------------------
-# use apple per n battles. default use the golden apple. Please calculate it by yourself. set 'False' to skip using. 
+# AP before running code.
 # type: int
-USE_APPLE_PER = False
+INIT_AP = 34
 
-# additions of apple using, set numbers for epoch No. Use apple AFTER that epoch.
-# type: tuple, num start from 1
-APPLE0_EPOCH = False    # num of apples needed ot clear all current AP. set FALSE to change to manual mode.
-USE_APPLE_ADDITION = list(range(APPLE0_EPOCH, EPOCH-(EPOCH-2)%3+1))[::3] if APPLE0_EPOCH else ( )
+# AP one battle costed.
+# type: int
+BATTLE_AP_COST = 40
 
-# details of don't using apple, if there are conflicts, it will cover `USE_APPLE_DETAIL` and 'APPLE_USE'.
-# type: tuple, num start from 1
-DONT_USE_APPLE = ( )
+# AP of one apple. default golden apple(137)
+# type: int
+ONE_APPLE_AP = 135
+
 
 # ----------------------------[BATTLE SETTING]---------------------------------
 # attack enemy behind firstly. `USE_ULTIMATE` may disturb this API.
@@ -62,12 +62,12 @@ USE_SKILL = True
 # CD turns of each skill of YOUR SERVANTS.(set all skills, although you won't use all of them):
 # the Nth num is the Nth skill's CD time, without support servant.
 # type: int
-YOUR_SKILL_CD = (9, 7, 9, 5, 8, 9)    # 酒吞
-# YOUR_SKILL_CD = (7, 7, 12, 6, 8, 9)  # 恩奇都
+# YOUR_SKILL_CD = (9, 6, 9, 5, 7, 8)    # 酒吞
+YOUR_SKILL_CD = (7, 7, 12, 5, 7, 8)  # 恩奇都
 
 # set a big number to ensure that skills won't be used wrongly.
 # type: int
-SUPPORT_SKILL_CD = 10
+SUPPORT_SKILL_CD = 6
 
 # skills list:
 # type: tuple, num start from 0
@@ -94,11 +94,25 @@ ATK_SLEEP_TIME = 0.15
 # SURVEIL_TIME_OUT = 0.5
 
 #----------------------------[SYNC SETTING]-----------------------------------
+# if sending email after code running stop.
+# type: bool
 SEND_MAIL = True
+
+# address and password(not your real password, but a code used for SMTP login service.)
+# type: str
 FROM_ADDRESS = '344915973@qq.com'
 PASSWD = 'kqddfbmxiipqcaeg'
+
+# address you want to send mail to.
+# type: str
 TO_ADDRESS = '694029828@qq.com'
+
+# SMTP server address.
+# type: str
 SMTP_SERVER = 'smtp.qq.com'
+
+# usable SMTP port, please check at your email settings.
+# type: int
 SMTP_PORT = 465
 
 

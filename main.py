@@ -7,6 +7,7 @@
 # [TODO] 
 # - 使用感知hash智能出牌
 
+import os 
 import win32api, win32con, win32gui, win32ui
 import PIL
 import time
@@ -26,7 +27,7 @@ CURRENT_EPOCH = 0
 
 def get_log():
     logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s - %(levelname)s]: %(message)s', 
-                            datefmt='%Y-%m-%d %H:%M', filename='fgo.LOG', filemode='w')
+                            datefmt='%y-%m-%d %H:%M', filename='fgo.LOG', filemode='w')
     console = logging.StreamHandler()
     console.setLevel(logging.DEBUG)
     console.setFormatter(logging.Formatter('[%(asctime)s - %(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M'))
@@ -61,32 +62,34 @@ class Cursor(object):
 class Fgo(object):
     def __init__(self, full_screen=True, sleep=True):
         # [init by yourself] put cursor at the down-right position of the game window.
-        
+        self.cal_apple_num()
+        print('==> Apple using: After', self.apple_use_epoch)
         if full_screen:
             self.height = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
             self.width = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
             self.scr_pos1 = (0, 0)
             self.scr_pos2 = (self.width, self.height)
             self.c = Cursor(init_pos=False)
-            for x in range(5):
-                
+            for x in range(5):             
                 logging.info('Program will start in %d s, Please enter FULL SCREEN MODE.' % (5-x))
                 time.sleep(1)
-            
+                   
         else:
             self.c = Cursor(init_pos=False)
             while 1:
-                in1 = input('[{} - INFO]: Move cursor to the top-left cornor of Fgo screen, and press ENTER(enter q to exit):'.format(
+                in1 = input('[{} - INFO]: Move cursor to the top-left of Fgo screen, and press ENTER (enter q to exit):'.format(
                     time.strftime('%H:%M:%S')))
                 if in1 == 'q':
-                    exit()
+                    print('==> Running stop')
+                    os._exit(0)
                 self.scr_pos1 = self.c.get_pos()
                 logging.info('Get cursor at {}'.format(self.scr_pos1))
                 
-                in2 = input('[{} - INFO]: Move cursor to the down-right cornor of Fgo screen, and press ENTER(enter q to exit):'.format(
+                in2 = input('[{} - INFO]: Move cursor to the down-right of Fgo screen, and press ENTER (enter q to exit):'.format(
                     time.strftime('%H:%M:%S')))
                 if in2 == 'q':
-                    exit()
+                    print('==> Running stop')
+                    os._exit(0)
                 self.scr_pos2 = self.c.get_pos()
                 logging.info('Get cursor at {}'.format(self.scr_pos2))
                 
@@ -120,7 +123,12 @@ class Fgo(object):
         self.menu_y1 = 0.7889
         self.menu_x2 = 0.1297
         self.menu_y2 = 0.8917
-        
+
+        # MissionStart position
+        self.StartMission_x1 = 0.875
+        self.StartMission_y1 = 0.9194
+        self.StartMission_x2 = 0.9807
+        self.StartMission_y2 = 0.9565
         # get a screen shot of menu icon:
         self.menu_img = self.pic_shot_float(self.menu_x1, self.menu_y1, self.menu_x2, self.menu_y2)
         if DEBUG:
@@ -144,11 +152,14 @@ class Fgo(object):
                 logging.warning('Screen was locked. You can ignore this message.')
                 pass
         if not DEBUG:
-            logging.info('EPOCH({}/{}) - Simulate cursor click at {}'.format(CURRENT_EPOCH, EPOCH, pos))
+            logging.info('<E{}/{}> - Simulate cursor click at {}'.format(CURRENT_EPOCH, EPOCH, (float_x, float_y)))
         time.sleep(sleep_time)
         
         
-    def send_mail(self):
+    def send_mail(self, status):
+        '''
+        - status: 'err' or 'done'
+        '''
         self.pic_shot_float(0, 0, 1, 1, './data/final_shot.jpg')
         with open('fgo.LOG', 'r') as f:
             res = f.readlines()
@@ -167,15 +178,44 @@ class Fgo(object):
             '<font size=\"1\">{}</font>'.format(res) +
             '</body></html>', 'html', 'utf-8'))
         msg['From'] = Header('why酱的FGO脚本', 'utf-8')
-        msg['Subject'] = Header('<FGO {}> Running Stop'.format(time.strftime('%m-%d|%H:%M')), 'utf-8')
+        msg['Subject'] = Header('<FGO {}> Running Stop <STATUS:{}>'.format(time.strftime('%m-%d|%H:%M'), status), 'utf-8')
         server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
         try:
             server.login(FROM_ADDRESS, PASSWD)
             server.sendmail(FROM_ADDRESS, [TO_ADDRESS], msg.as_string())
             server.quit()
-            print('==> Mail sent finish. Please check it.')
+            print('==> Mail sent successfully. Please check it.')
         except:
             print('==> Mail sent failed. Maybe there are something wrong.')
+
+    def cal_apple_num(self):
+        global EPOCH
+        self.apple_use_epoch = []
+        global INIT_AP
+        if INIT_AP < BATTLE_AP_COST:
+            self.apple_use_epoch.append(0)
+            INIT_AP += ONE_APPLE_AP
+        now_ap = INIT_AP    
+        for i in range(EPOCH):
+            no = i+1
+            now_ap -= BATTLE_AP_COST
+            if now_ap < BATTLE_AP_COST and no!=EPOCH:
+                self.apple_use_epoch.append(no)
+                now_ap += ONE_APPLE_AP
+            
+
+        if now_ap > BATTLE_AP_COST:
+            print('=====\nNow using apple after epoch: {}'.format(self.apple_use_epoch))
+            tmp = EPOCH
+            
+            while now_ap > BATTLE_AP_COST:
+                tmp += 1
+                now_ap -= ONE_APPLE_AP
+            res = input('You\'d better change epoch to {} to clear all AP. Process?(y/n):'.format(tmp))
+            if res not in ('n', 'N'):
+                EPOCH = tmp
+            print('Now EPOCH = {}\n=====\n'.format(EPOCH))
+
 
     def enter_battle(self, supNo=8):
         # [init by yourself] put the tag of battle at the top of screen.
@@ -196,6 +236,12 @@ class Fgo(object):
         self.click_act(sup_ico_x, sup_ico_y, 0.8)
         self.click_act(sup_tag_x, sup_tag_y, 2)
 
+        # save `StartMission icon`
+        self.StartMission_img = self.pic_shot_float(
+                        self.StartMission_x1, self.StartMission_y1, self.StartMission_x2, self.StartMission_y2)
+        if 1:
+            self.StartMission_img.save('./data/StartMission.jpg')
+        
         # game start
         # postion of `mission start` tag
         start_x = 0.9281
@@ -286,7 +332,7 @@ class Fgo(object):
             time.sleep(1)
             
         logging.error('Connection timeout. Maybe there are some problems with your network.')
-        self.send_mail()
+        self.send_mail('Err')
         return -1
     
     def cal_diff(self, x1, y1, x2, y2, target, save_img=False, hash=True):
@@ -311,8 +357,7 @@ class Fgo(object):
         smp1_x1 = 0.8708
         smp1_y1 = 0.7556
         smp1_x2 = 0.8979
-        smp1_y2 = 0.8009
-        
+        smp1_y2 = 0.8009     
         return self.cal_diff(smp1_x1, smp1_y1, smp1_x2, smp1_y2, self.atk_img, save_img=save_img, hash=hash)
     
         
@@ -339,31 +384,41 @@ class Fgo(object):
         while 1:
             if time.time() - beg_time > 300:
                 logging.error('Running out of time, No status change detected for 5min.')
-                self.send_mail()
+                self.send_mail('Err')
                 raise RuntimeError('Running out of time.')
 
             now_atk_img = self.pic_shot_float(smp1_x1, smp1_y1, smp1_x2, smp1_y2)
             if now_atk_img == self.new_atk_img:
-                logging.info('<MONITOR> - Got status changingat area1, Continue running...')
+                logging.info('<MONITOR> - Got status change, Start new turn...')
                 return 0
             else:
                 now_menu_img = self.pic_shot_float(self.menu_x1, self.menu_y1, self.menu_x2, self.menu_y2)
-                
+                # save for avoid entering the wrong battle.
+                now_StartMission_img = self.pic_shot_float(
+                        self.StartMission_x1, self.StartMission_y1, self.StartMission_x2, self.StartMission_y2)
+
                 if DEBUG:
                     diff = compare_img_new(self.menu_img, now_menu_img, algo=1)
                     logging.debug('Menu img diff:={}'.format(diff))
                     now_menu_img.save('./data/now_menu.jpg')
                     
                 if now_menu_img  == self.menu_img:
-                    logging.info('<MONITOR> - Detected status changing, battle finished.')
+                    logging.info('<MONITOR> - Detected status changing, battle finish.')
                     print('------------------------< BATTLE FINISH >----------------------------')
                     return 1
+                elif now_StartMission_img == self.StartMission_img:
+                    self.click_act(0.0766, 0.0565, 1)
+                    self.click_act(0.0766, 0.0565, 1)
+                    logging.warning('<MONITOR> - Entered wrong battle, auto-fixed. battle finish.')
+                    print('------------------------< BATTLE FINISH >----------------------------')
+                    return 1
+                    # logging.info('EPOCH({}/{}) - No change detected in area1.'.format(CURRENT_EPOCH, EPOCH))
                 else:
                     pass
-                    # logging.info('EPOCH({}/{}) - No change detected in area1.'.format(CURRENT_EPOCH, EPOCH))
-                
+
             # click to skip something
-            self.click_act(0.7771, 0.9370, 1)
+            # self.click_act(0.7771, 0.9370, 1)
+            self.click_act(0.7771, 0.9627, 1)
             # time.sleep(SURVEIL_TIME_OUT)
                 
     def reuse_skill(self, cd_num):
@@ -405,20 +460,16 @@ class Fgo(object):
             if over:
                 return 1
         logging.error('Running over 50 turns, program was forced to stop.')
-        self.send_mail()
+        self.send_mail('Err')
         raise RuntimeError('Running over 50 turns, program was forced to stop.')
         
 
     def use_apple(self, num):
-        flag = 0
-        if not USE_APPLE_PER:
-            if num in USE_APPLE_ADDITION and num not in DONT_USE_APPLE:
-                flag = 1
-        else:   
-            if (not num % USE_APPLE_PER or num in USE_APPLE_ADDITION) and num not in DONT_USE_APPLE:
-                flag = 1
-                
-        if flag == 1:
+        '''
+        use apple AFTER the `num`th epoch.
+        '''
+        USE_APPLE = True
+        if USE_APPLE and num in self.apple_use_epoch:
             # choose AP bar:
             self.click_act(0.1896, 0.9611, 0.7)
             # choose apple:
@@ -426,19 +477,23 @@ class Fgo(object):
             # choose OK:
             self.click_act(0.6563, 0.7824, 1)
                         
+
     def run(self):
         beg = time.time()
+        self.use_apple(0)
         for j in range(EPOCH):
             print('\n----------------------< Battle EPOCH{} Start >----------------------'.format(j+1))
             global CURRENT_EPOCH
             CURRENT_EPOCH += 1
             self.one_battle() 
             self.use_apple(j+1)
+
             
             # between battles:
             time.sleep(1)
         end = time.time()
-        print('\n==> Everything done, Total time use: {:1f}min, <{:1f}min on avarage.>'.format((end-beg)/60, (end-beg)/(60*EPOCH)))
+        logging.info('Everything done, Total time use: {:.1f}min, <{:.1f}min on avarage.>'.format((end-beg)/60, (end-beg)/(60*EPOCH)))
+        self.send_mail('Done')
 
 
 # In[4]:
@@ -447,7 +502,6 @@ class Fgo(object):
 if __name__ == '__main__':
     get_log()
     fgo = Fgo(full_screen=FULL_SCREEN, sleep=False)
-    fgo.send_mail()
     #fgo.one_battle(go_on=True)
     # fgo.use_skill((1, 2))
     fgo.run()
