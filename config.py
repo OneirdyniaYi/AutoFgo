@@ -1,5 +1,6 @@
 # Author: Why
 
+DEBUG = False       # type: bool
 # Advanced work:
 # - Skip the confirming of using skills.
 # - set battle speed to 2x
@@ -8,28 +9,16 @@
 # - edit the following settings each time you run main.py.
 
 
-# ------------------------------User Settings----------------------------------
-# debug mode:
-# type: bool
-DEBUG = False
-
-# set full screen mode to get better effect.
-# type: bool
-FULL_SCREEN = False
-
-# num of battles you want to run:
-# type: int
-EPOCH = 3
-
+# ------------------------------[User Settings]----------------------------------
+FULL_SCREEN = False  # type: bool
+EPOCH = 10  # num of battles you want to run (type: int)
+ 
 # num 0~8, options: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
 # type: int
 SUPPORT = 7     # default berserker := 7 
 
-
 # ----------------------------[APPLE USING]---------------------------------
-# AP before running code.
-# type: int
-INIT_AP = 34
+INIT_AP = 71  # AP before running code.(type: int)
 
 # AP one battle costed.
 # type: int
@@ -37,8 +26,7 @@ BATTLE_AP_COST = 40
 
 # AP of one apple. default golden apple(137)
 # type: int
-ONE_APPLE_AP = 135
-
+ONE_APPLE_AP = 136
 
 # ----------------------------[BATTLE SETTING]---------------------------------
 # attack enemy behind firstly. `USE_ULTIMATE` may disturb this API.
@@ -62,8 +50,8 @@ USE_SKILL = True
 # CD turns of each skill of YOUR SERVANTS.(set all skills, although you won't use all of them):
 # the Nth num is the Nth skill's CD time, without support servant.
 # type: int
-# YOUR_SKILL_CD = (9, 6, 9, 5, 7, 8)    # 酒吞
-YOUR_SKILL_CD = (7, 7, 12, 5, 7, 8)  # 恩奇都
+YOUR_SKILL_CD = (9, 6, 9, 5, 7, 8)    # 酒吞
+# YOUR_SKILL_CD = (7, 7, 12, 5, 7, 8)  # 恩奇都
 
 # set a big number to ensure that skills won't be used wrongly.
 # type: int
@@ -101,7 +89,8 @@ SEND_MAIL = True
 # address and password(not your real password, but a code used for SMTP login service.)
 # type: str
 FROM_ADDRESS = '344915973@qq.com'
-PASSWD = 'kqddfbmxiipqcaeg'
+# PASSWD = 'kqddfbmxiipqcaeg'
+PASSWD = 'hqytohqljgnebhhg'
 
 # address you want to send mail to.
 # type: str
