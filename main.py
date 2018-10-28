@@ -105,24 +105,28 @@ class Fgo(object):
         #---------------------sampled pix info-----------------------
         # position info, type: 'name': (x1, x2, y1, y2)
         self.area_pos = {
-            'menu': (0.0693, 0.7889, 0.1297, 0.8917),
-            'StartMission': (0.875, 0.9194, 0.9807, 0.9565), 
+            # 'menu': (0.0693, 0.7889, 0.1297, 0.8917),
+            # 'StartMission': (0.875, 0.9194, 0.9807, 0.9565), 
             'AP_recover': (0.4583, 0.0556, 0.5391, 0.0926),
-            'AtkIcon': (0.8708, 0.7556, 0.8979, 0.8009)
+            'AtkIcon': (0.8708, 0.7556, 0.8979, 0.8009),
+            'sample2': (0.8984, 0.9352, 0.9542, 0.9630)
         }   
 
         # `pre` means this image was saves before code running.
         self.img = {
             'pre_loading': PIL.Image.open('./data/loading.jpg'),
             'pre_atk': PIL.Image.open('./data/atk_ico.jpg'), 
-            'menu': self.pic_shot_float(self.area_pos['menu']), 
+            'menu': self.pic_shot_float(self.area_pos['sample2']), 
             'StartMission': None, 
-            'AP_recover': None
+            'AP_recover': None,
+            'atk_ico': None
         }
         # get a screen shot of menu icon:
-        self.img['menu'].save('./data/menu.jpg')
+        if DEBUG:
+            self.img['menu'].save('./data/menu.jpg')
         #print('[DEBUG {}] Window width(x) = {}, height(y) = {}'.format(
         #    time.strftime('%H:%M:%S'), self.width, self.height))
+    
     def monitor_cursor_pos(self):
         while 1:
             x, y = self.c.get_pos()
@@ -134,7 +138,6 @@ class Fgo(object):
                 pos = 'Not in Fgo window.'
             logging.info('<MNTR> Now cursor pos: {}'.format(pos))
             time.sleep(0.5)
-
 
     def _set(self, float_x, float_y):
         # input type: float
@@ -153,7 +156,6 @@ class Fgo(object):
         # if not DEBUG and info:
             # logging.info('<E{}/{}> - Simulate cursor click at {}'.format(CURRENT_EPOCH, EPOCH, (float_x, float_y)))
         time.sleep(sleep_time)
-        
         
     def send_mail(self, status):
         '''
@@ -222,7 +224,6 @@ class Fgo(object):
                 print('==> Code running stop.')
                 os._exit(0)
 
-
     def enter_battle(self, supNo=8):
         # [init by yourself] put the tag of battle at the top of screen.
         
@@ -247,20 +248,20 @@ class Fgo(object):
         start_y = 0.9398
         start_x = 0.9281
         if not self.img['StartMission']:
-            self.img['StartMission'] = self.pic_shot_float(self.area_pos['StartMission'])
-            self.img['StartMission'].save('./data/StartMission.jpg')
+            self.img['StartMission'] = self.pic_shot_float(self.area_pos['sample2'])
+            if DEBUG:
+                self.img['StartMission'].save('./data/StartMission.jpg')
             self.click_act(start_x, start_y, 1)
         else:
             time1 = time.time()
             while 1:
-                if self.pic_shot_float(self.area_pos['StartMission']) == self.img['StartMission']:
+                if self.pic_shot_float(self.area_pos['sample2']) == self.img['StartMission']:
                     self.click_act(start_x, start_y, 1)
                     return 0
                 if time.time() - time1 > 10:
                     logging.error('<MNTR> - Can\'t get START_MISSION tag for 20s.')
                     self.send_mail('Error')
                     raise RuntimeError('Can\'t get START_MISSION tag for 10s')
-
       
     def use_skill(self, skills, timeout=SKILL_SLEEP_TIME):
         # position of skills:
@@ -273,8 +274,7 @@ class Fgo(object):
             self.click_act(0.5, 0.5, 0.2)
             self.click_act(0.0521, 0.4259, timeout-0.7)
         logging.info('<E{}/{}> - Skills using over.'.format(CURRENT_EPOCH, EPOCH))
-
-              
+       
     def attack(self):
         logging.info('<E{}/{}> - Now start attacking....'.format(CURRENT_EPOCH, EPOCH))
 
@@ -303,7 +303,6 @@ class Fgo(object):
                         self.click_act(x, ult_y, 0.1)
         logging.info('<E{}/{}> - ATK Card using over.'.format(CURRENT_EPOCH, EPOCH))
 
-    
     def pic_shot_float(self, pos, name=None):
         float_x1, float_y1, float_x2, float_y2 = pos
         # error: 关闭屏幕缩放！关闭屏幕缩放！
@@ -322,28 +321,31 @@ class Fgo(object):
         
         for i in range(100):
             now_atk_img = self.pic_shot_float(self.area_pos['AtkIcon'])
-            now_atk_img.save('./data/now_loading.jpg')
+            if DEBUG:
+                now_atk_img.save('./data/now_loading.jpg')
+            if CURRENT_EPOCH != 1:
+                if now_atk_img==self.img['atk_ico']:
+                    logging.info('<MNTR> - Detected status change, finish loading.')
+                    return 0
+                else:
+                    time.sleep(1)
+
             if not i:
                 logging.info('<LOAD> - Monitoring at area1, Now loading...')
             diff1 = compare_img_new(now_atk_img, real_atk, algo)
             diff2 = compare_img_new(now_atk_img, real_loading, algo)
-            
             if DEBUG:
-                logging.debug('Diff between now_img and ATK is:', diff1)
-                logging.debug('Diff between now_img and LOADING is:', diff2)
-            
-            if mode == -1:
-                condition = (diff2 == 0 and diff1 > 0)
-            else:
-                condition = (diff1 < diff2 and diff2!=0)
-                
+                logging.debug('Diff of now_img and ATK is: {}'.format(diff1))
+                logging.debug('Diff of now_img and LOADING is: {}'.format(diff2))
+
+            condition = (diff2 == 0 and diff1 > 0) if mode == -1 else (diff1 < diff2 and diff2!=0)
             if condition:
                 time.sleep(0.8)
                 logging.info('<MNTR> - Detected status change, loaded over.')
-                return diff1
                 if sleep:
                     # wait for background anime finishing:
                     time.sleep(sleep)
+                return diff1
             time.sleep(1)
             
         logging.error('Connection timeout. Maybe there are some problems with your network.')
@@ -369,15 +371,16 @@ class Fgo(object):
      
     def cal_atk_diff(self, targrt, save_img=False, hash=True):
         # sample1 area of attack icon:
-        smp1_x1, smp1_y1, smp1_x2, smp1_y2 = self.area_pos['AtkIcon']     
-        return self.cal_diff(smp1_x1, smp1_y1, smp1_x2, smp1_y2, self.img['pre_atk'], save_img=save_img, hash=hash)
-    
+        a, b, c, d = self.area_pos['AtkIcon']     
+        return self.cal_diff(a, b, c, d, self.img['pre_atk'], save_img=save_img, hash=hash)
         
     def one_turn_new(self):   
         # uodate saved atk icon:
-        self.new_atk_img = self.pic_shot_float(self.area_pos['AtkIcon'])
-        self.new_atk_img.save('./data/save_new_atk.jpg')
-        
+        if not self.img['atk_ico']:
+            self.img['atk_ico'] = self.pic_shot_float(self.area_pos['AtkIcon'])
+            if DEBUG:
+                self.img['atk_ico'].save('./data/save_new_atk.jpg')
+            
         if ATK_BEHIND_FIRST:
             self.click_act(0.3010, 0.0602, 0.1)
             self.click_act(0.1010, 0.0593, 0.1)
@@ -389,37 +392,8 @@ class Fgo(object):
         # compare atk icon to the last saved icon.
         j = 0
         while 1:
-            if time.time() - beg_time > 180:
-                logging.error('Running out of time, No status change detected for 3min.')
-                self.send_mail('Err')
-                raise RuntimeError('Running out of time.')
-
-            now_atk_img = self.pic_shot_float(self.area_pos['AtkIcon'])
-            if now_atk_img == self.new_atk_img:
-                logging.info('<MNTR> - Got status change, Start new turn...')
-                return 0
-            else:
-                now_menu_img = self.pic_shot_float(self.area_pos['menu'])
-                # save for avoid entering the wrong battle.
-                now_StartMission_img = self.pic_shot_float(self.area_pos['StartMission'])
-                if not self.img['AP_recover']:
-                    now_AP_recover_img = self.pic_shot_float(self.area_pos['AP_recover'])
-
-                # now_menu_img.save('./data/now_menu.jpg')
-                # now_AP_recover_img.save('./data/now_AP_recover.jpg')
-                # now_StartMission_img.save('./data/now_StartMission.jpg')
-
-                if DEBUG:
-                    diff = compare_img_new(self.img['menu'], now_menu_img, algo=1)
-                    logging.debug('Menu img diff:={}'.format(diff))
-                    
-                if now_StartMission_img == self.img['StartMission']:
-                    self.click_act(0.0766, 0.0565, 1)
-                    self.click_act(0.0766, 0.0565, 1)
-                    logging.warning('<MNTR> - Entered wrong battle, auto-fixed. battle finish.')
-                    return 1
-                    # logging.info('EPOCH({}/{}) - No change detected in area1.'.format(CURRENT_EPOCH, EPOCH))
-                elif now_AP_recover_img == self.img['AP_recover']:
+            if time.time() - beg_time > 150:
+                if self.pic_shot_float(self.area_pos['AP_recover']) == self.img['AP_recover']:
                     self.click_act(0.5, 0.7843, 0.5)
                     self.click_act(0.5, 0.8620, 0.5)
                     global EPOCH, CURRENT_EPOCH
@@ -427,18 +401,34 @@ class Fgo(object):
                     logging.warning('Apple use error, auto-fixed. Wrong Apple use: {}'.format(self.apple_use_epoch))
                     logging.warning('init_ap = {}, battle_ap_cost = {}, one+apple_ap = {}'.format(INIT_AP, BATTLE_AP_COST, ONE_APPLE_AP))
                     self.apple_use_epoch = ()
-                
-                if now_menu_img  == self.img['menu']:
-                    logging.info('<MNTR> - Detected status changing, battle finish.')
                     return 1
                 else:
-                    self.click_act(0.7771, 0.9627, 0.8, info=False)
-                    # click to skip something
-                    # self.click_act(0.7771, 0.9370, 1)
-                    if not j:
-                        logging.info('<MNTR> - Monitoring (0.7771, 0.9627), no change...')
-                    j += 1
-                    # time.sleep(SURVEIL_TIME_OUT)
+                    logging.error('Running out of time, No status change detected for 2min30s.')
+                    self.send_mail('Err')
+                    raise RuntimeError('Running out of time.')
+
+            elif self.pic_shot_float(self.area_pos['AtkIcon']) == self.img['atk_ico']:
+                logging.info('<MNTR> - Got status change, Start new turn...')
+                return 0
+
+            elif self.pic_shot_float(self.area_pos['sample2']) == self.img['StartMission']:
+                self.click_act(0.0766, 0.0565, 1)
+                self.click_act(0.0766, 0.0565, 1)
+                logging.warning('<MNTR> - Entered wrong battle, auto-fixed. battle finish.')
+                return 1
+                
+            elif self.pic_shot_float(self.area_pos['sample2']) == self.img['menu']:
+                logging.info('<MNTR> - Detected status changing, battle finish.')
+                return 1 
+            
+            else:
+                self.click_act(0.7771, 0.9627, 0.8, info=False)
+                # click to skip something
+                # self.click_act(0.7771, 0.9370, 1)
+                if not j:
+                    logging.info('<MNTR> - Monitoring (0.7771, 0.9627), no change...')
+                j += 1
+                # time.sleep(SURVEIL_TIME_OUT)
                 
     def reuse_skill(self, cd_num):
         skills = []
@@ -451,7 +441,6 @@ class Fgo(object):
             return 1
         else:
             return 0    
-    
 
     def one_battle(self, go_on=False):
         '''
@@ -461,9 +450,9 @@ class Fgo(object):
             self.enter_battle(SUPPORT)
             # wait for going into loading page:
             time.sleep(3.5)
-            self.diff_atk = self.wait_loading(save_img=DEBUG, sleep=5.5)
+            self.diff_atk = self.wait_loading(save_img=DEBUG, sleep=3)
             if USE_SKILL:
-                time.sleep(0.2)
+                # time.sleep(0.2)
                 self.use_skill(USED_SKILL, timeout=SKILL_SLEEP_TIME)
             else:
                 time.sleep(2)
@@ -482,7 +471,6 @@ class Fgo(object):
         self.send_mail('Err')
         raise RuntimeError('Running over 50 turns, program was forced to stop.')
         
-
     def use_apple(self, num):
         '''
         use apple AFTER the `num`th epoch.
@@ -521,13 +509,9 @@ class Fgo(object):
             # between battles:
             time.sleep(1)
         end = time.time()
-        logging.info('Everything done, Total time use: {:.1f}min, <{:.1f}min on avarage.>'.format((end-beg)/60, (end-beg)/(60*EPOCH)))
+        logging.info('Total time use: {:.1f}min, <{:.1f}min on avarage.>'.format((end-beg)/60, (end-beg)/(60*EPOCH)))
         self.send_mail('Done')
         self.clear_data()
-        
-
-
-# In[4]:
 
 
 if __name__ == '__main__':
@@ -538,11 +522,3 @@ if __name__ == '__main__':
     # fgo.send_mail('test')
     # fgo.monitor_cursor_pos()
     fgo.run()
-
-
-# In[ ]:
-
-
-# x, y = (133, 852)
-# x/1920, y/1080
-

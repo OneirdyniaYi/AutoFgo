@@ -11,14 +11,14 @@ DEBUG = False       # type: bool
 
 # ------------------------------[User Settings]----------------------------------
 FULL_SCREEN = False  # type: bool
-EPOCH = 10  # num of battles you want to run (type: int)
+EPOCH = 2  # num of battles you want to run (type: int)
  
 # num 0~8, options: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
 # type: int
 SUPPORT = 7     # default berserker := 7 
 
 # ----------------------------[APPLE USING]---------------------------------
-INIT_AP = 71  # AP before running code.(type: int)
+INIT_AP = 130  # AP before running code.(type: int)
 
 # AP one battle costed.
 # type: int
@@ -86,6 +86,7 @@ ATK_SLEEP_TIME = 0.15
 # type: bool
 SEND_MAIL = True
 
+SEND_MAIL = False if EPOCH<5 or DEBUG else SEND_MAIL
 # address and password(not your real password, but a code used for SMTP login service.)
 # type: str
 FROM_ADDRESS = '344915973@qq.com'
