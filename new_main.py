@@ -60,8 +60,6 @@ class Cursor(object):
 class Fgo(object):
     def __init__(self, full_screen=True, sleep=True):
         # [init by yourself] put cursor at the down-right position of the game window.
-        self.cal_apple_num()
-        logging.info('==> Apple using After {}'.format(self.apple_use_epoch))
         if full_screen:
             self.height = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
             self.width = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
@@ -104,11 +102,12 @@ class Fgo(object):
             self.width = abs(self.scr_pos2[0] - self.scr_pos1[0])
             self.height = abs(self.scr_pos2[1] - self.scr_pos1[1])
         #---------------------sampled pix info-----------------------
-        # position info, type: 'name': (x1, x2, y1, y2)
+        # position info, type: 'name': (x1, y1, x2, y2)
         self.area_pos = {
             'menu': (0.0693, 0.7889, 0.1297, 0.8917),
             # 'StartMission': (0.875, 0.9194, 0.9807, 0.9565), 
-            'AP_recover': (0.4583, 0.0556, 0.5391, 0.0926),
+            # 'AP_recover': (0.4583, 0.0556, 0.5391, 0.0926),
+            'AP_recover': (0.2511, 0.177, 0.3304, 0.3158),
             'AtkIcon': (0.8708, 0.7556, 0.8979, 0.8009),
             'sample2': (0.8984, 0.9352, 0.9542, 0.9630),
             'support': (0.6257, 0.1558, 0.6803, 0.1997)
@@ -196,44 +195,15 @@ class Fgo(object):
             print('\nError type: ', e)
             print('==> Mail sent failed. Maybe there are something wrong.')
 
-    def cal_apple_num(self):
-        global EPOCH
-        self.apple_use_epoch = []
-        global INIT_AP
-        if INIT_AP < BATTLE_AP_COST:
-            self.apple_use_epoch.append(0)
-            INIT_AP += ONE_APPLE_AP
-        now_ap = INIT_AP    
-        for i in range(EPOCH):
-            no = i+1
-            now_ap -= BATTLE_AP_COST
-            if now_ap < BATTLE_AP_COST and no!=EPOCH:
-                self.apple_use_epoch.append(no)
-                now_ap += ONE_APPLE_AP
-            
-        if now_ap > BATTLE_AP_COST:
-            print('====================================\nNow using apple after epoch: {}'.format(self.apple_use_epoch))
-            tmp = EPOCH
-            
-            while now_ap > BATTLE_AP_COST:
-                tmp += 1
-                now_ap -= ONE_APPLE_AP
-            res = input('You\'d better change epoch to {} to clear all AP. Process?(y/n/q): '.format(tmp))
-            if res not in ('n', 'N', 'q'):
-                EPOCH = tmp
-                print('Now EPOCH = {}\n====================================\n'.format(EPOCH))
-            elif res == 'q':
-                print('==> Code running stop.')
-                os._exit(0)
 
     def enter_battle(self, supNo=8):
         # [init by yourself] put the tag of battle at the top of screen.
-        
+
         # postion of the center of battle tag.
         bat_tag_y = 0.2740
         bat_tag_x = 0.7252
         self.click_act(bat_tag_x, bat_tag_y, 1)
-        
+        self.use_apple()
         # choose support:
         # postion of support servant tag.
         sup_tag_x = 0.4893
@@ -391,12 +361,9 @@ class Fgo(object):
         j = 0
         while 1:
             if time.time() - beg_time > 150:
-                if self.check_AP_full:
-                    return 1
-                else:
-                    logging.error('Running out of time, No status change detected for 2min30s.')
-                    self.send_mail('Err')
-                    raise RuntimeError('Running out of time.')
+                logging.error('Running out of time, No status change detected for 2min30s.')
+                self.send_mail('Err')
+                raise RuntimeError('Running out of time.')
 
             elif self.pic_shot_float(self.area_pos['AtkIcon']) == self.img['atk_ico']:
                 logging.info('<{}> - Got status change, Start new turn...'.format(MONITOR_INFO))
@@ -413,9 +380,8 @@ class Fgo(object):
                 return 1 
             
             else:
-                self.click_act(0.7771, 0.9627, 1, info=False)
                 # click to skip something
-                # self.click_act(0.7771, 0.9370, 1)
+                self.click_act(0.7771, 0.9627, 1.2, info=False)
                 if not j:
                     logging.info('<{}> - Monitoring (0.7771, 0.9627), no change...'.format(MONITOR_INFO))
                 j += 1
@@ -462,60 +428,49 @@ class Fgo(object):
         self.send_mail('Err')
         raise RuntimeError('Running over 50 turns, program was forced to stop.')
         
-    def use_apple(self, num):
-        '''
-        use apple AFTER the `num`th epoch.
-        '''
-        USE_APPLE = True
-        if USE_APPLE and num in self.apple_use_epoch:
+    def use_apple(self):
+        # ap_img = self.pic_shot_float(self.area_pos['AP_recover'])
+        # ap_img.save('./data/now_ap.jpg')
+        if self.pic_shot_float(self.area_pos['AP_recover']) == self.img['AP_recover']:
             logging.info('==> Using apple...')
-            # choose AP bar:
-            self.click_act(0.1896, 0.9611, 0.7)
             # choose apple:
             self.click_act(0.5, 0.4463, 0.7)
-            # get shot:
-            if not self.img['AP_recover']:
-                self.img['AP_recover'] = self.pic_shot_float(self.area_pos['AP_recover'])
             # choose OK:
             self.click_act(0.6563, 0.7824, 1)
             logging.info('==> Apple using over.')
-            self.check_AP_full()
-            
 
-    def check_AP_full(self):
-        if self.img['AP_recover'] and self.pic_shot_float(self.area_pos['AP_recover']) == self.img['AP_recover']:
-            self.click_act(0.5, 0.7843, 0.5)
-            self.click_act(0.5, 0.8620, 0.5)
             global EPOCH, CURRENT_EPOCH
-            EPOCH = CURRENT_EPOCH + ONE_APPLE_AP//BATTLE_AP_COST
-            logging.warning('Apple use error, auto-fixed. Wrong Apple use: {}'.format(self.apple_use_epoch))
-            logging.warning('Epoch was adjusted to {}'.format(EPOCH))
-            logging.warning('init_ap = {}, battle_ap_cost = {}, one+apple_ap = {}'.format(INIT_AP, BATTLE_AP_COST, ONE_APPLE_AP))
-            self.apple_use_epoch = ()
-            return 1        # ap was full, auto-fixed.
-        else:
-            return 0        # everything ok.
-
-
+            if EPOCH - CURRENT_EPOCH < ONE_APPLE_BATTLE - 1:
+                EPOCH = CURRENT_EPOCH + ONE_APPLE_BATTLE -1
+                logging.info('Auto change EPOCH to {} to use all AP.'.format(EPOCH))
+            
     def clear_data(self):
         files = os.listdir('./data')
         for x in files:
-            if x == 'atk_ico.jpg' or 'loading.jpg':
+            if x == 'atk_ico.jpg' or x == 'loading.jpg':
                 continue
             else:
                 os.remove('./data/{}'.format(x))
 
+    def save_AP_recover_pic(self):
+        logging.info('==> Saving AP_recover pic...')
+        # choose AP bar:
+        self.click_act(0.1896, 0.9611, 1)
+        self.img['AP_recover'] = self.pic_shot_float(self.area_pos['AP_recover'])
+        # self.img['AP_recover'].save('./data/ap.jpg')
+        # click `exit`
+        self.click_act(0.5, 0.8630, 0.5)
+
     def run(self):
         beg = time.time()
-        self.use_apple(0)
+        self.save_AP_recover_pic()
         for j in range(EPOCH):
             print('\n----------------------< Battle EPOCH{} Start >----------------------'.format(j+1))
             global CURRENT_EPOCH
             CURRENT_EPOCH += 1
             self.one_battle()
-            self.use_apple(j+1)
-            # between battles:
             time.sleep(1)
+            # between battles:
         end = time.time()
         logging.info('Total time use: {:.1f}min, <{:.1f}min on avarage.>'.format((end-beg)/60, (end-beg)/(60*EPOCH)))
         if SEND_MAIL:
@@ -529,5 +484,5 @@ if __name__ == '__main__':
     # fgo.one_battle(go_on=True)
     # fgo.use_skill((1, 2))
     # fgo.send_mail('test')
-    fgo.monitor_cursor_pos()
-    # fgo.run()
+    # fgo.monitor_cursor_pos()
+    fgo.run()

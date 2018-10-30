@@ -11,23 +11,30 @@ DEBUG = False       # type: bool
 
 # ------------------------------[User Settings]----------------------------------
 FULL_SCREEN = False  # type: bool
-EPOCH = 2  # num of battles you want to run (type: int)
  
 # num 0~8, options: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
 # type: int
 SUPPORT = 7     # default berserker := 7 
 
+EPOCH = 50  # num of battles you want to run (type: int)
 # ----------------------------[APPLE USING]---------------------------------
-INIT_AP = 130  # AP before running code.(type: int)
-
-# AP one battle costed.
+# equal ot all AP // one battle AP cost.
 # type: int
-BATTLE_AP_COST = 40
+ONE_APPLE_BATTLE = 3
 
-# AP of one apple. default golden apple(137)
-# type: int
-ONE_APPLE_AP = 136
+# INIT_AP = 179  # AP before running code.(type: int)
 
+# # AP one battle costed.
+# # type: int
+# BATTLE_AP_COST = 40
+
+# # AP of one apple. default golden apple(137)
+# # type: int
+# ONE_APPLE_AP = 136
+
+# # use up all AP or not. Auto change epoch.
+# # type: bool
+# CLEAR_AP = True
 # ----------------------------[BATTLE SETTING]---------------------------------
 # attack enemy behind firstly. `USE_ULTIMATE` may disturb this API.
 # type: bool
@@ -50,7 +57,7 @@ USE_SKILL = True
 # CD turns of each skill of YOUR SERVANTS.(set all skills, although you won't use all of them):
 # the Nth num is the Nth skill's CD time, without support servant.
 # type: int
-YOUR_SKILL_CD = (9, 6, 9, 5, 7, 8)    # 酒吞
+YOUR_SKILL_CD = (9, 6, 8, 5, 7, 8)    # 酒吞
 # YOUR_SKILL_CD = (7, 7, 12, 5, 7, 8)  # 恩奇都
 
 # set a big number to ensure that skills won't be used wrongly.
@@ -69,7 +76,7 @@ SKILL_SLEEP_TIME = 2.8
 # time to sleep after clicking atk cards:
 # you'd better keep the default value.
 # type: float
-ATK_SLEEP_TIME = 0.15
+ATK_SLEEP_TIME = 0.1
 
 # # use master's skill or not 
 # USE_MASTER_SKILL = True
