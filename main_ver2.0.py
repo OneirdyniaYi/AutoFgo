@@ -23,7 +23,6 @@ from email import encoders
 
 SKILL_CD = YOUR_SKILL_CD + (SUPPORT_SKILL_CD, )*3
 CURRENT_EPOCH = 0
-MONITOR_INFO = 'MNTR' if EPOCH<10 else 'MONTR'
 
 
 def get_log():
@@ -137,7 +136,7 @@ class Fgo(object):
                 pos = (round(x, 4), round(y, 4))
             else:
                 pos = 'Not in Fgo window.'
-            logging.info('<{}> Now float pos: {}, real: {}'.format(MONITOR_INFO, pos, self.c.get_pos()))
+            logging.info('<M{}/{}> Now float pos: {}, real: {}'.format(CURRENT_EPOCH, EPOCH, pos, self.c.get_pos()))
             time.sleep(0.5)
 
     def _set(self, float_x, float_y):
@@ -231,7 +230,7 @@ class Fgo(object):
                     self.click_act(start_x, start_y, 1)
                     return 0
                 elif time.time() - time1 > 10:
-                    logging.error('<{}> - Can\'t get START_MISSION tag for 10s.'.format(MONITOR_INFO))
+                    logging.error('<M{}/{}> - Can\'t get START_MISSION tag for 10s.'.format(CURRENT_EPOCH, EPOCH))
                     self.send_mail('Error')
                     raise RuntimeError('Can\'t get START_MISSION tag for 10s')
       
@@ -295,7 +294,7 @@ class Fgo(object):
                 logging.info('<LOAD> - Monitoring at area1, Now loading...')
             if CURRENT_EPOCH != 1:
                 if now_atk_img==self.img['atk_ico']:
-                    logging.info('<{}> - Detected status change, finish loading.'.format(MONITOR_INFO))
+                    logging.info('<M{}/{}> - Detected status change, finish loading.'.format(CURRENT_EPOCH, EPOCH))
                     return 0    
                 else:
                     time.sleep(1)
@@ -309,7 +308,7 @@ class Fgo(object):
                 condition = (diff2 == 0 and diff1 > 0) if mode == -1 else (diff1 < diff2 and diff2!=0)
                 if condition:
                     time.sleep(0.8)
-                    logging.info('<{}> - Detected status change, loaded over.'.format(MONITOR_INFO))
+                    logging.info('<M{}/{}> - Detected status change, loaded over.'.format(CURRENT_EPOCH, EPOCH))
                     if sleep:
                         # wait for background anime finishing:
                         time.sleep(sleep)
@@ -365,25 +364,30 @@ class Fgo(object):
                 self.send_mail('Err')
                 raise RuntimeError('Running out of time.')
 
+            elif Nero_MAX and self.pic_shot_float((0.3726, 0.381, 0.4458, 0.5225)) == self.Nero_img:
+                self.click_act(0.3485, 0.7947, 0.5)
+                logging.warning('<M{}/{}> - Entered wrong battle, auto-fixed. battle finish.'.format(CURRENT_EPOCH, EPOCH))
+                return 1
+
             elif self.pic_shot_float(self.area_pos['AtkIcon']) == self.img['atk_ico']:
-                logging.info('<{}> - Got status change, Start new turn...'.format(MONITOR_INFO))
+                logging.info('<M{}/{}> - Got status change, Start new turn...'.format(CURRENT_EPOCH, EPOCH))
                 return 0
 
             elif self.pic_shot_float(self.area_pos['sample2']) == self.img['StartMission']:
                 self.click_act(0.0766, 0.0565, 1)
                 self.click_act(0.0766, 0.0565, 1)
-                logging.warning('<{}> - Entered wrong battle, auto-fixed. battle finish.'.format(MONITOR_INFO))
+                logging.warning('<M{}/{}> - Entered wrong battle, auto-fixed. battle finish.'.format(CURRENT_EPOCH, EPOCH))
                 return 1
                 
             elif self.pic_shot_float(self.area_pos['menu']) == self.img['menu']:
-                logging.info('<{}> - Detected status changing, battle finish.'.format(MONITOR_INFO))
+                logging.info('<M{}/{}> - Detected status changing, battle finish.'.format(CURRENT_EPOCH, EPOCH))
                 return 1 
             
             else:
                 # click to skip something
                 self.click_act(0.7771, 0.9627, 1.2, info=False)
                 if not j:
-                    logging.info('<{}> - Monitoring (0.7771, 0.9627), no change...'.format(MONITOR_INFO))
+                    logging.info('<M{}/{}> - Monitoring (0.7771, 0.9627), no change...'.format(CURRENT_EPOCH, EPOCH, ))
                 j += 1
                 # time.sleep(SURVEIL_TIME_OUT)
                 
@@ -421,7 +425,13 @@ class Fgo(object):
                 time.sleep(0.5)
                 self.reuse_skill(i)
                 time.sleep(0.5)
-            over = self.one_turn_new()    
+            over = self.one_turn_new() 
+            if Nero_MAX:
+                time.sleep(2)
+                if self.pic_shot_float((0.3726, 0.381, 0.4458, 0.5225)) == self.Nero_img:
+                    self.click_act(0.3485, 0.7947, 0.5)
+                    logging.warning('<M{}/{}> - Entered wrong battle, auto-fixed. battle finish.'.format(CURRENT_EPOCH, EPOCH))
+                    
             if over:
                 return 1
         logging.error('Running over 50 turns, program was forced to stop.')
@@ -460,6 +470,11 @@ class Fgo(object):
         # self.img['AP_recover'].save('./data/ap.jpg')
         # click `exit`
         self.click_act(0.5, 0.8630, 0.5)
+
+        if Nero_MAX:
+            self.click_act(0.7314, 0.8427, 0.8)
+            self.Nero_img = self.pic_shot_float((0.3726, 0.381, 0.4458, 0.5225))
+            self.click_act(0.3485, 0.7947, 0.5)
 
     def run(self):
         beg = time.time()

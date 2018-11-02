@@ -1,5 +1,5 @@
 # Author: Why
-
+Nero_MAX = True     # 尼禄祭！
 DEBUG = False       # type: bool
 # Advanced work:
 # - Skip the confirming of using skills.
@@ -16,7 +16,7 @@ FULL_SCREEN = False  # type: bool
 # type: int
 SUPPORT = 7     # default berserker := 7 
 
-EPOCH = 50  # num of battles you want to run (type: int)
+EPOCH = 40  # num of battles you want to run (type: int)
 # ----------------------------[APPLE USING]---------------------------------
 # equal ot all AP // one battle AP cost.
 # type: int
@@ -57,8 +57,10 @@ USE_SKILL = True
 # CD turns of each skill of YOUR SERVANTS.(set all skills, although you won't use all of them):
 # the Nth num is the Nth skill's CD time, without support servant.
 # type: int
-YOUR_SKILL_CD = (9, 6, 8, 5, 7, 8)    # 酒吞
+# YOUR_SKILL_CD = (8, 6, 8, 5, 7, 8)    # 酒吞
 # YOUR_SKILL_CD = (7, 7, 12, 5, 7, 8)  # 恩奇都
+YOUR_SKILL_CD = (7, 6, 7, 5, 7, 8)    # 金时
+
 
 # set a big number to ensure that skills won't be used wrongly.
 # type: int
