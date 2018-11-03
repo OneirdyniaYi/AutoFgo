@@ -241,12 +241,13 @@ class Fgo(object):
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021, 0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
         ski_y = 0.8009
         # snap = 0.0734
+        time.sleep(0.5)
         for i in skills:
-            self.click_act(ski_x[i], ski_y, 0.1)
-            self.click_act(0.5, 0.5, 0.1)
-            self.click_act(0.0521, 0.4259, 0)
+            self.click_act(ski_x[i], ski_y, 0.05)
+            self.click_act(0.5, 0.5, 0.05)
+            self.click_act(0.0521, 0.4259, 0.2)
             
-            if self.pic_shot_float(self.area_pos['AtkIcon']) == self.img['atk_ico']:
+            while self.pic_shot_float(self.area_pos['AtkIcon']) != self.img['atk_ico']:
                 continue
 
         logging.info('<E{}/{}> - Skills using over.'.format(CURRENT_EPOCH, EPOCH))
@@ -402,6 +403,8 @@ class Fgo(object):
             # wait for going into loading page:
             time.sleep(3.5)
             self.diff_atk = self.wait_loading(save_img=DEBUG, sleep=3)
+        else:
+            self.img['atk_ico'] = self.img['atk_ico']
         
         for i in range(50):
             logging.info('<E{}/{}> - Start Turn {}'.format(CURRENT_EPOCH, EPOCH, i+1))         
