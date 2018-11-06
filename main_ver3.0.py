@@ -101,7 +101,7 @@ class Fgo(object):
         #---------------------sampled pix info-----------------------
         # position info, type: 'name': (x1, y1, x2, y2)
         self.area_pos = {
-            'menu': (0.0693, 0.7889, 0.1297, 0.8917),
+            'menu': (0.0693, 0.7889, 0.1297, 0.8917),       # avator position
             # 'StartMission': (0.875, 0.9194, 0.9807, 0.9565),
             # 'AP_recover': (0.4583, 0.0556, 0.5391, 0.0926),
             'AP_recover': (0.2511, 0.177, 0.3304, 0.3158),
@@ -117,7 +117,8 @@ class Fgo(object):
             'menu': self.pic_shot_float(self.area_pos['menu']),
             'StartMission': None,
             'AP_recover': None,
-            'atk_ico': None
+            'atk_ico': None, 
+            'nero': None
         }
         # get a screen shot of menu icon:
         if DEBUG:
@@ -214,9 +215,10 @@ class Fgo(object):
 
         if CURRENT_EPOCH == 1:
             self.click_act(sup_ico_x, sup_ico_y, 0.8)
+        else:
+            time.sleep(0.8)
         self.click_act(sup_tag_x, sup_tag_y, 1)
 
-        # save `StartMission icon`
         # postion of `mission start` tag
         start_y = 0.9398
         start_x = 0.9281
@@ -232,12 +234,15 @@ class Fgo(object):
                 if self.pic_shot_float(self.area_pos['sample2']) == self.img['StartMission']:
                     self.click_act(start_x, start_y, 1)
                     return 0
+
                 elif time.time() - time1 > 10:
                     self.click_act(sup_tag_x, sup_tag_y, 1)
-                    logging.error(
-                        '<M{}/{}> - Can\'t get START_MISSION tag for 10s.'.format(CURRENT_EPOCH, EPOCH))
-                    self.send_mail('Error')
-                    raise RuntimeError('Can\'t get START_MISSION tag for 10s')
+                    if self.pic_shot_float(self.area_pos['sample2']) != self.img['StartMission']:
+                        logging.error(
+                            '<M{}/{}> - Can\'t get START_MISSION tag for 10s.'.format(CURRENT_EPOCH, EPOCH))
+                        self.send_mail('Error')
+                        raise RuntimeError(
+                            'Can\'t get START_MISSION tag for 10s')
 
     def use_skill(self, skills):
         # position of skills:
@@ -258,7 +263,6 @@ class Fgo(object):
                 if time.time() - beg > 6:
                     logging.warning('Click avator wrongly,auto-fixed.')
                     self.click_act(0.0521, 0.4259, 0.2)
-
         logging.info(
             '<E{}/{}> - Skills using over.'.format(CURRENT_EPOCH, EPOCH))
 
@@ -374,7 +378,9 @@ class Fgo(object):
         if ATK_BEHIND_FIRST:
             self.click_act(0.3010, 0.0602, 0.1)
             self.click_act(0.1010, 0.0593, 0.1)
-        self.use_skill(USED_SKILL)
+        if USE_SKILL:
+            self.use_skill(USED_SKILL)
+            time.sleep(0.5)
         self.attack()
         time.sleep(5)
 
@@ -389,7 +395,7 @@ class Fgo(object):
                 self.send_mail('Err')
                 raise RuntimeError('Running out of time.')
 
-            elif Nero_MAX and self.pic_shot_float((0.3726, 0.381, 0.4458, 0.5225)) == self.Nero_img:
+            elif Nero_MAX and self.pic_shot_float((0.3726, 0.381, 0.4458, 0.5225)) == self.img['nero']:
                 self.click_act(0.3485, 0.7947, 0.5)
                 logging.warning(
                     '<M{}/{}> - Entered wrong battle, auto-fixed. battle finish.'.format(CURRENT_EPOCH, EPOCH))
@@ -400,21 +406,21 @@ class Fgo(object):
                     '<M{}/{}> - Got status change, Start new turn...'.format(CURRENT_EPOCH, EPOCH))
                 return 0
 
-            elif self.pic_shot_float(self.area_pos['sample2']) == self.img['StartMission']:
-                self.click_act(0.0766, 0.0565, 1)
-                self.click_act(0.0766, 0.0565, 1)
-                logging.warning(
-                    '<M{}/{}> - Entered wrong battle, auto-fixed. battle finish.'.format(CURRENT_EPOCH, EPOCH))
-                return 1
-
-            elif self.pic_shot_float(self.area_pos['menu']) == self.img['menu']:
-                logging.info(
-                    '<M{}/{}> - Detected status changing, battle finish.'.format(CURRENT_EPOCH, EPOCH))
-                return 1
+            # elif self.pic_shot_float(self.area_pos['sample2']) == self.img['StartMission']:
+            #     self.click_act(0.0766, 0.0565, 1)
+            #     self.click_act(0.0766, 0.0565, 1)
+            #     logging.warning(
+            #         '<M{}/{}> - Entered wrong battle, auto-fixed. battle finish.'.format(CURRENT_EPOCH, EPOCH))
+            #     return 1
 
             else:
-                # click to skip something
-                self.click_act(0.7771, 0.9627, 1.2, info=False)
+                if self.pic_shot_float(self.area_pos['menu']) != self.img['menu']:
+                    # click to skip something
+                    self.click_act(0.7771, 0.9627, 2, info=False)
+                else:
+                    logging.info(
+                        '<M{}/{}> - Detected status changing, battle finish.'.format(CURRENT_EPOCH, EPOCH))
+                    return 1
                 if not j:
                     logging.info(
                         '<M{}/{}> - Monitoring (0.7771, 0.9627), no change...'.format(CURRENT_EPOCH, EPOCH))
@@ -438,7 +444,7 @@ class Fgo(object):
 
             if Nero_MAX:
                 time.sleep(0.5)
-                if self.pic_shot_float((0.3726, 0.381, 0.4458, 0.5225)) == self.Nero_img:
+                if self.pic_shot_float((0.3726, 0.381, 0.4458, 0.5225)) == self.img['nero']:
                     self.click_act(0.3485, 0.7947, 0.5)
                     logging.warning(
                         '<M{}/{}> - Entered wrong battle, auto-fixed. battle finish.'.format(CURRENT_EPOCH, EPOCH))
@@ -487,7 +493,7 @@ class Fgo(object):
 
         if Nero_MAX:
             self.click_act(0.7314, 0.8427, 0.8)
-            self.Nero_img = self.pic_shot_float(
+            self.img['nero'] = self.pic_shot_float(
                 (0.3726, 0.381, 0.4458, 0.5225))
             self.click_act(0.3485, 0.7947, 0.5)
 

@@ -1,10 +1,10 @@
 # Author: Why
-Nero_MAX = True     # 尼禄祭！
+Nero_MAX = False     # 尼禄祭！
 DEBUG = False       # type: bool
 
 # ------------------------------[Important]----------------------------------
 # num 0~8: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
-SUPPORT = 7     # default berserker := 7 
+SUPPORT = 2     # default berserker := 7 
 EPOCH = 50  # num of battles you want to run (type: int)
 ONE_APPLE_BATTLE = 3    # all AP // one battle AP cost. (type: int)
 
@@ -14,10 +14,10 @@ FULL_SCREEN = False  # type: bool
 ATK_BEHIND_FIRST = True
 
 # use ultimate skill or not: (type: bool)
-USE_ULTIMATE = True
+USE_ULTIMATE = False
 
 # use servants' skill or not: (type: bool)
-USE_SKILL = True
+USE_SKILL = False
 
 # skills list:
 # type: tuple, num start from 0
