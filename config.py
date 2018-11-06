@@ -16,7 +16,7 @@ FULL_SCREEN = False  # type: bool
 # type: int
 SUPPORT = 7     # default berserker := 7 
 
-EPOCH = 40  # num of battles you want to run (type: int)
+EPOCH = 50  # num of battles you want to run (type: int)
 # ----------------------------[APPLE USING]---------------------------------
 # equal ot all AP // one battle AP cost.
 # type: int
