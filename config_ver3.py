@@ -32,6 +32,9 @@ SKILL_SLEEP_TIME = 2.8
 # type: float
 ATK_SLEEP_TIME = 0.1
 
+# click to skip something:
+CLICK_BREAK_TIME = 1
+
 # # use master's skill or not 
 # USE_MASTER_SKILL = True
 # # The round you want to use in, begin at 0.
