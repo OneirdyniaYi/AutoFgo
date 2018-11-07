@@ -4,8 +4,11 @@ DEBUG = False       # type: bool
 
 # ------------------------------[Important]----------------------------------
 # num 0~8: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
-SUPPORT = 2     # default berserker := 7 
-EPOCH = 50  # num of battles you want to run (type: int)
+SUPPORT = 7     # default berserker := 7 
+EPOCH = 3  # num of battles you want to run (type: int)
+
+CLEAR_AP = False
+
 ONE_APPLE_BATTLE = 3    # all AP // one battle AP cost. (type: int)
 
 # ------------------------------[User Settings]----------------------------------

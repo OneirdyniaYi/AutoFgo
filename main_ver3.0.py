@@ -16,7 +16,9 @@ import smtplib
 from email.mime.multipart import MIMEMultipart, MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
+import sys
 CURRENT_EPOCH = 0
+PRE_BREAK_TIME = CLICK_BREAK_TIME
 
 
 def get_log():
@@ -53,53 +55,66 @@ class Cursor(object):
 class Fgo(object):
     def __init__(self, full_screen=True, sleep=True):
         # [init by yourself] put cursor at the down-right position of the game window.
+        self.c = Cursor(init_pos=False)
         if full_screen:
             self.height = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
             self.width = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
             self.scr_pos1 = (0, 0)
             self.scr_pos2 = (self.width, self.height)
-            self.c = Cursor(init_pos=False)
             for x in range(5):
                 logging.info(
                     'Start in %d s, Please enter FULL SCREEN.' % (5-x))
                 time.sleep(1)
-
         else:
-            self.c = Cursor(init_pos=False)
-            while 1:
-                in1 = input(
-                    '==> Move cursor to top-left of Fgo, press ENTER (q to exit): ')
-                if in1 == 'q':
-                    print('==> Running stop')
-                    os._exit(0)
-                self.scr_pos1 = self.c.get_pos()
-                print('==> Get cursor at {}'.format(self.scr_pos1))
+            if len(sys.argv)>1 and sys.argv[1] in ('--keep', '-k'):
+                with open('./data/init_pos.txt', 'r') as f:
+                    res = f.readlines()
+                res = tuple([int(x) for x in res[0].split(' ')])
+                self.scr_pos1 = res[:2]
+                self.scr_pos2 = res[2:]
+                print('==> Continue running keeping last position.')
+            else:
+                while 1:
+                    in1 = input(
+                        '==> Move cursor to top-left of Fgo, press ENTER (q to exit): ')
+                    if in1 == 'q':
+                        print('==> Running stop')
+                        os._exit(0)
+                    self.scr_pos1 = self.c.get_pos()
+                    print('==> Get cursor at {}'.format(self.scr_pos1))
 
-                in2 = input(
-                    '==> Move cursor to down-right of Fgo, press ENTER (q to exit): ')
-                if in2 == 'q':
-                    print('==> Running stop')
-                    os._exit(0)
-                self.scr_pos2 = self.c.get_pos()
-                print('==> Get cursor at {}'.format(self.scr_pos2))
+                    in2 = input(
+                        '==> Move cursor to down-right of Fgo, press ENTER (q to exit): ')
+                    if in2 == 'q':
+                        print('==> Running stop')
+                        os._exit(0)
+                    self.scr_pos2 = self.c.get_pos()
+                    print('==> Get cursor at {}'.format(self.scr_pos2))
 
-                res = input('Continue? [y(continue) /n(reset) /q(quit)]:'.format(
-                    time.strftime('%H:%M:%S')))
-                if res == 'n':
-                    continue
-                elif res == 'q':
-                    os._exit(0)
-                else:
-                    break
-            if sleep:
-                for x in range(3):
-                    logging.info(
-                        'Start in %d s, make sure the window not covered.' % (3-x))
-                    time.sleep(1)
+                    res = input('Continue? [y(continue) /n(reset) /q(quit)]:'.format(
+                        time.strftime('%H:%M:%S')))
+                    if res == 'n':
+                        continue
+                    elif res == 'q':
+                        os._exit(0)
+                    else:
+                        break
+                if sleep:
+                    for x in range(3):
+                        logging.info(
+                            'Start in %d s, make sure the window not covered.' % (3-x))
+                        time.sleep(1)
+                with open('./data/init_pos.txt', 'w') as f:
+                    pos = str(self.scr_pos1[0]) + ' ' + str(self.scr_pos1[1]) + \
+                        ' ' + str(self.scr_pos2[0]) + ' ' + str(self.scr_pos2[1])
+                    f.write(pos)
+                    print('==> Position info saved.')
+
             self.width = abs(self.scr_pos2[0] - self.scr_pos1[0])
             self.height = abs(self.scr_pos2[1] - self.scr_pos1[1])
-        #---------------------sampled pix info-----------------------
-        # position info, type: 'name': (x1, y1, x2, y2)
+            #---------------------sampled pix info-----------------------
+            # position info, type: 'name': (x1, y1, x2, y2)
+            
         self.area_pos = {
             # 'StartMission': (0.875, 0.9194, 0.9807, 0.9565),
             # 'AP_recover': (0.4583, 0.0556, 0.5391, 0.0926),
@@ -107,7 +122,7 @@ class Fgo(object):
             'StartMission': (0.8984, 0.9352, 0.9542, 0.9630),
             'AP_recover': (0.2511, 0.177, 0.3304, 0.3158),
             'support': (0.6257, 0.1558, 0.6803, 0.1997),
-            'nero': (0.3726, 0.381, 0.4458, 0.5225), 
+            'nero': (0.3726, 0.381, 0.4458, 0.5225),
             'AtkIcon': (0.8708, 0.7556, 0.8979, 0.8009),
             'fufu': (0.4167, 0.9260, 0.4427, 1),
         }
@@ -120,7 +135,7 @@ class Fgo(object):
             'menu': self.pic_shot_float(self.area_pos['menu']),
             'StartMission': None,
             'AP_recover': None,
-            'AtkIcon': None, 
+            'AtkIcon': None,
             'nero': None,
             'fufu': None
         }
@@ -238,13 +253,13 @@ class Fgo(object):
         else:
             time1 = time.time()
             while 1:
-                if self.pic_shot_float(self.area_pos['sample2']) == self.img['StartMission']:
+                if self.pic_shot_float(self.area_pos['StartMission']) == self.img['StartMission']:
                     self.click_act(start_x, start_y, 1)
                     return 0
 
                 elif time.time() - time1 > 10:
                     self.click_act(sup_tag_x, sup_tag_y, 1)
-                    if self.pic_shot_float(self.area_pos['sample2']) != self.img['StartMission']:
+                    if self.pic_shot_float(self.area_pos['StartMission']) != self.img['StartMission']:
                         logging.error(
                             '<M{}/{}> - Can\'t get START_MISSION tag for 10s.'.format(CURRENT_EPOCH, EPOCH))
                         self.send_mail('Error')
@@ -422,10 +437,13 @@ class Fgo(object):
                     '<M{}/{}> - Enter loading page, battle finish.'.format(CURRENT_EPOCH, EPOCH))
                 global CLICK_BREAK_TIME
                 CLICK_BREAK_TIME = 3.5
+                time.sleep(1)
 
-            elif self.pic_shot_float(self.area_pos['menu']) != self.img['menu']:
+            elif self.pic_shot_float(self.area_pos['menu']) == self.img['menu']:
                 logging.info(
-                        '<M{}/{}> - Detected status change, battle finish.'.format(CURRENT_EPOCH, EPOCH))
+                    '<M{}/{}> - Detected status change, battle finish.'.format(CURRENT_EPOCH, EPOCH))
+                global PRE_BREAK_TIME
+                CLICK_BREAK_TIME = PRE_BREAK_TIME
                 return 1
             # elif self.pic_shot_float(self.area_pos['sample2']) == self.img['StartMission']:
             #     self.click_act(0.0766, 0.0565, 1)
@@ -484,7 +502,7 @@ class Fgo(object):
             logging.info('==> Apple using over.')
 
             global EPOCH, CURRENT_EPOCH
-            if EPOCH - CURRENT_EPOCH < ONE_APPLE_BATTLE - 1:
+            if EPOCH - CURRENT_EPOCH < ONE_APPLE_BATTLE - 1 and CLEAR_AP:
                 EPOCH = CURRENT_EPOCH + ONE_APPLE_BATTLE - 1
                 logging.info(
                     'Auto change EPOCH to {} to use all AP.'.format(EPOCH))
@@ -492,7 +510,7 @@ class Fgo(object):
     def clear_data(self):
         files = os.listdir('./data')
         for x in files:
-            if x == 'atk_ico.jpg' or x == 'loading.jpg':
+            if x in ('atk_ico.jpg', 'loading.jpg', 'init_pos.txt'):
                 continue
             else:
                 os.remove('./data/{}'.format(x))
