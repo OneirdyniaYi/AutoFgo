@@ -17,14 +17,14 @@ FULL_SCREEN = False  # type: bool
 ATK_BEHIND_FIRST = True
 
 # use ultimate skill or not: (type: bool)
-USE_ULTIMATE = False
+USE_ULTIMATE = True
 
 # use servants' skill or not: (type: bool)
 USE_SKILL = False
 
 # skills list:
 # type: tuple, num start from 0
-USED_SKILL = (0, 1, 2, 3, 4, 5, 6, 7, 8)     # reset the order of numbers to change skill orders.
+USED_SKILL = (0, 1, 3, 4, 5, 6, 7, 8)     # reset the order of numbers to change skill orders.
 
 # time to sleep after using skills, you'd better keep the default value.
 # type: float

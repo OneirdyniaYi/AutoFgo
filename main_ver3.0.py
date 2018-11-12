@@ -16,11 +16,23 @@ import smtplib
 from email.mime.multipart import MIMEMultipart, MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
-import sys
+import argparse
+# ===== Config: =====
 CURRENT_EPOCH = 0
 PRE_BREAK_TIME = CLICK_BREAK_TIME
+Args = argparse.ArgumentParser()
+Args.add_argument('--epoch', '-e', type=int, help='Num of running battles.')
+Args.add_argument('--keep', '-k', action='store_true',
+                  help='To keep the window-position same as the last time.')
+Args.add_argument('--debug', '-d', action='store_true',
+                  help='Enter DEBUG mode.')
+Opt = Args.parse_args()
 
+global DEBUG, EPOCH
+DEBUG = Opt.debug if Opt.debug else DEBUG
+EPOCH = Opt.epoch if Opt.epoch else EPOCH
 
+# ===== Main Code: =====
 def get_log():
     logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s - %(levelname)s]: %(message)s',
                         datefmt='%H:%M:%S', filename='fgo.LOG', filemode='w')
@@ -66,7 +78,7 @@ class Fgo(object):
                     'Start in %d s, Please enter FULL SCREEN.' % (5-x))
                 time.sleep(1)
         else:
-            if len(sys.argv)>1 and sys.argv[1] in ('--keep', '-k'):
+            if Opt.keep:
                 with open('./data/init_pos.txt', 'r') as f:
                     res = f.readlines()
                 res = tuple([int(x) for x in res[0].split(' ')])
@@ -106,7 +118,8 @@ class Fgo(object):
                         time.sleep(1)
                 with open('./data/init_pos.txt', 'w') as f:
                     pos = str(self.scr_pos1[0]) + ' ' + str(self.scr_pos1[1]) + \
-                        ' ' + str(self.scr_pos2[0]) + ' ' + str(self.scr_pos2[1])
+                        ' ' + str(self.scr_pos2[0]) + \
+                        ' ' + str(self.scr_pos2[1])
                     f.write(pos)
                     print('==> Position info saved.')
 
@@ -114,7 +127,7 @@ class Fgo(object):
             self.height = abs(self.scr_pos2[1] - self.scr_pos1[1])
             #---------------------sampled pix info-----------------------
             # position info, type: 'name': (x1, y1, x2, y2)
-            
+
         self.area_pos = {
             # 'StartMission': (0.875, 0.9194, 0.9807, 0.9565),
             # 'AP_recover': (0.4583, 0.0556, 0.5391, 0.0926),
