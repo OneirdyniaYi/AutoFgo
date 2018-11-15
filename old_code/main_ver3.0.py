@@ -1,4 +1,3 @@
-
 # coding: utf-8
 import os
 import win32api
@@ -8,9 +7,8 @@ import win32ui
 import PIL
 import time
 from config_ver3 import *
-import numpy as np
 import logging
-from utils import compare_img, pic_shot, compare_img_new
+from utils import pic_shot, compare_img_new
 from email.header import Header
 import smtplib
 from email.mime.multipart import MIMEMultipart, MIMEBase
@@ -33,6 +31,8 @@ DEBUG = Opt.debug if Opt.debug else DEBUG
 EPOCH = Opt.epoch if Opt.epoch else EPOCH
 
 # ===== Main Code: =====
+
+
 def get_log():
     logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s - %(levelname)s]: %(message)s',
                         datefmt='%H:%M:%S', filename='fgo.LOG', filemode='w')
@@ -87,24 +87,19 @@ class Fgo(object):
                 print('==> Continue running keeping last position.')
             else:
                 while 1:
-                    in1 = input(
-                        '==> Move cursor to top-left of Fgo, press ENTER (q to exit): ')
-                    if in1 == 'q':
+                    if input('==> Move cursor to top-left of Fgo, press ENTER (q to exit): ') == 'q':
                         print('==> Running stop')
                         os._exit(0)
                     self.scr_pos1 = self.c.get_pos()
                     print('==> Get cursor at {}'.format(self.scr_pos1))
 
-                    in2 = input(
-                        '==> Move cursor to down-right of Fgo, press ENTER (q to exit): ')
-                    if in2 == 'q':
+                    if input('==> Move cursor to down-right of Fgo, press ENTER (q to exit): ') == 'q':
                         print('==> Running stop')
                         os._exit(0)
                     self.scr_pos2 = self.c.get_pos()
                     print('==> Get cursor at {}'.format(self.scr_pos2))
 
-                    res = input('Continue? [y(continue) /n(reset) /q(quit)]:'.format(
-                        time.strftime('%H:%M:%S')))
+                    res = input('Continue? [y(continue) /n(reset) /q(quit)]:')
                     if res == 'n':
                         continue
                     elif res == 'q':
@@ -125,7 +120,7 @@ class Fgo(object):
 
             self.width = abs(self.scr_pos2[0] - self.scr_pos1[0])
             self.height = abs(self.scr_pos2[1] - self.scr_pos1[1])
-            #---------------------sampled pix info-----------------------
+            # ---------------------sampled pix info-----------------------
             # position info, type: 'name': (x1, y1, x2, y2)
 
         self.area_pos = {
@@ -195,9 +190,7 @@ class Fgo(object):
         time.sleep(sleep_time)
 
     def send_mail(self, status):
-        '''
-        - status: 'err' or 'done'
-        '''
+        # status: 'err' or 'done'
         self.pic_shot_float((0, 0, 1, 1), './data/final_shot.jpg')
         with open('fgo.LOG', 'r') as f:
             res = f.readlines()
@@ -235,21 +228,14 @@ class Fgo(object):
 
     def enter_battle(self, supNo=8):
         # [init by yourself] put the tag of battle at the top of screen.
-
-        # postion of the center of battle tag.
-        bat_tag_y = 0.2740
-        bat_tag_x = 0.7252
-        self.click_act(bat_tag_x, bat_tag_y, 1)
-        self.use_apple()
-        # choose support:
         # postion of support servant tag.
         sup_tag_x = 0.4893
         sup_tag_y = 0.3944
-        # postion of support class icon.
-        sup_ico_x = 0.0729+0.0527*supNo
-        sup_ico_y = 0.1796
-
-        self.click_act(sup_ico_x, sup_ico_y, 0.8)
+        # click the center of battle tag.
+        self.click_act(0.7252, 0.2740, 1)
+        self.use_apple()
+        # choose support servent class icon:
+        self.click_act(0.0729+0.0527*supNo, 0.1796, 0.8)
         self.click_act(sup_tag_x, sup_tag_y, 1)
 
         # postion of `mission start` tag
@@ -279,8 +265,6 @@ class Fgo(object):
                         self.send_mail('Error')
                         raise RuntimeError(
                             'Can\'t get START_MISSION tag for 10s')
-        
-        
 
     def use_skill(self, skills):
         # position of skills:
@@ -308,17 +292,14 @@ class Fgo(object):
         logging.info(
             '<E{}/{}> - Now start attacking....'.format(CURRENT_EPOCH, EPOCH))
 
-        # attack icon position:
-        atk_ico_x = 0.8823
-        atk_ico_y = 0.8444
-        self.click_act(atk_ico_x, atk_ico_y, 1)
+        # click attack icon:
+        self.click_act(0.8823, 0.8444, 1)
 
         # use normal atk card:
         # normal atk card position:
         atk_card_x = [0.1003+0.2007*x for x in range(5)]
-        atk_card_y = 0.7019
         for i in range(5):
-            self.click_act(atk_card_x[i], atk_card_y, ATK_SLEEP_TIME)
+            self.click_act(atk_card_x[i], 0.7019, ATK_SLEEP_TIME)
             if i == 0 and USE_ULTIMATE:
                 # logging.info('==> Using Utimate skills...')
                 time.sleep(0.5)
@@ -326,6 +307,9 @@ class Fgo(object):
                 ult_y = 0.2833
                 for x in ult_x:
                     self.click_act(x, ult_y, 0.1)
+        # To avoid `Can't use card` status:
+        for i in range(3):
+            self.click_act(atk_card_x[i], 0.7019, 0.1)
         logging.info(
             '<E{}/{}> - ATK Card using over.'.format(CURRENT_EPOCH, EPOCH))
 
@@ -339,9 +323,7 @@ class Fgo(object):
         return pic_shot(x1, y1, x2, y2, name)
 
     def wait_loading(self, save_img=False, algo=0, sleep=None, mode=0):
-        '''
-        sample in the attack icon per 1s, if loading process is over, break the loop.
-        '''
+        # Sample in the attack icon per 1s, if loading process is over, break the loop.
         real_atk = self.img['pre_atk']
         real_loading = self.img['pre_loading']
 
@@ -358,7 +340,6 @@ class Fgo(object):
                     return 0
                 else:
                     time.sleep(1)
-
             else:
                 diff1 = compare_img_new(now_atk_img, real_atk, algo)
                 diff2 = compare_img_new(now_atk_img, real_loading, algo)
@@ -380,7 +361,6 @@ class Fgo(object):
                 elif not self.img['fufu']:
                     self._save_img('fufu')
                     self.img['fufu'].save('./data/fufu.jpg')
-
                 time.sleep(1)
 
         logging.error(
@@ -405,11 +385,6 @@ class Fgo(object):
         else:
             return 0 if now_atk_img == self.img['pre_atk'] else -1
 
-    def cal_atk_diff(self, targrt, save_img=False, hash=True):
-        # sample1 area of attack icon:
-        a, b, c, d = self.area_pos['AtkIcon']
-        return self.cal_diff(a, b, c, d, self.img['pre_atk'], save_img=save_img, hash=hash)
-
     def one_turn_new(self):
         # uodate saved atk icon:
         if not self.img['AtkIcon']:
@@ -424,7 +399,7 @@ class Fgo(object):
             self.use_skill(USED_SKILL)
             time.sleep(0.5)
         self.attack()
-        time.sleep(2)
+        time.sleep(1.5)
 
         # Start waiting status change:
         beg_time = time.time()
@@ -461,13 +436,6 @@ class Fgo(object):
                 global PRE_BREAK_TIME
                 CLICK_BREAK_TIME = PRE_BREAK_TIME
                 return 1
-            # elif self.pic_shot_float(self.area_pos['sample2']) == self.img['StartMission']:
-            #     self.click_act(0.0766, 0.0565, 1)
-            #     self.click_act(0.0766, 0.0565, 1)
-            #     logging.warning(
-            #         '<M{}/{}> - Entered wrong battle, auto-fixed. battle finish.'.format(CURRENT_EPOCH, EPOCH))
-            #     return 1
-
             else:
                 # click to skip something
                 self.click_act(0.7771, 0.9627, CLICK_BREAK_TIME, info=False)
@@ -550,7 +518,7 @@ class Fgo(object):
         self.save_AP_recover_pic()
         for j in range(EPOCH):
             print(
-                '\n----------------------< Battle EPOCH{} Start >----------------------'.format(j+1))
+                '\n=====<< Battle EPOCH{} Start >>====='.format(j+1))
             global CURRENT_EPOCH
             CURRENT_EPOCH += 1
             self.one_battle()

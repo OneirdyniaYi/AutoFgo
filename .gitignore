@@ -1,6 +1,7 @@
 fgo_img
 *.ipynb
 *.log
+*.txt
 *.LOG
 *.bak*
 *.pyc
