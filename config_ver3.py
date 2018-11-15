@@ -1,5 +1,6 @@
 # Author: Why
 Nero_MAX = False     # 尼禄祭！
+Choose_item = True  # 万圣节！
 DEBUG = False       # type: bool
 
 # ------------------------------[Important]----------------------------------
@@ -20,11 +21,11 @@ ATK_BEHIND_FIRST = True
 USE_ULTIMATE = True
 
 # use servants' skill or not: (type: bool)
-USE_SKILL = False
+USE_SKILL = True
 
 # skills list:
 # type: tuple, num start from 0
-USED_SKILL = (0, 1, 3, 4, 5, 6, 7, 8)     # reset the order of numbers to change skill orders.
+USED_SKILL = (0, 1, 2, 3, 4, 5, 6, 7, 8)     # reset the order of numbers to change skill orders.
 
 # time to sleep after using skills, you'd better keep the default value.
 # type: float

@@ -249,10 +249,7 @@ class Fgo(object):
         sup_ico_x = 0.0729+0.0527*supNo
         sup_ico_y = 0.1796
 
-        if CURRENT_EPOCH == 1:
-            self.click_act(sup_ico_x, sup_ico_y, 0.8)
-        else:
-            time.sleep(0.8)
+        self.click_act(sup_ico_x, sup_ico_y, 0.8)
         self.click_act(sup_tag_x, sup_tag_y, 1)
 
         # postion of `mission start` tag
@@ -263,11 +260,15 @@ class Fgo(object):
             if DEBUG:
                 self.img['StartMission'].save('./data/StartMission.jpg')
             self.click_act(start_x, start_y, 1)
+            if Choose_item:
+                self.click_act(0.6469, 0.9131, 1)
         else:
             time1 = time.time()
             while 1:
                 if self.pic_shot_float(self.area_pos['StartMission']) == self.img['StartMission']:
                     self.click_act(start_x, start_y, 1)
+                    if Choose_item:
+                        self.click_act(0.6469, 0.9131, 1)
                     return 0
 
                 elif time.time() - time1 > 10:
@@ -278,6 +279,8 @@ class Fgo(object):
                         self.send_mail('Error')
                         raise RuntimeError(
                             'Can\'t get START_MISSION tag for 10s')
+        
+        
 
     def use_skill(self, skills):
         # position of skills:
@@ -295,7 +298,7 @@ class Fgo(object):
 
             beg = time.time()
             while self.pic_shot_float(self.area_pos['AtkIcon']) != self.img['AtkIcon']:
-                if time.time() - beg > 6:
+                if 10 > time.time() - beg > 6:
                     logging.warning('Click avator wrongly,auto-fixed.')
                     self.click_act(0.0521, 0.4259, 0.2)
         logging.info(
@@ -421,7 +424,7 @@ class Fgo(object):
             self.use_skill(USED_SKILL)
             time.sleep(0.5)
         self.attack()
-        time.sleep(5)
+        time.sleep(2)
 
         # Start waiting status change:
         beg_time = time.time()
