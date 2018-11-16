@@ -138,13 +138,13 @@ class Fgo(object):
             'pre_loading': PIL.Image.open('./data/loading.jpg'),
             'pre_atk': PIL.Image.open('./data/atk_ico.jpg'),
             # save during running:
-            'menu': self._save_img('menu'),
+            'menu': self.pic_shot_float(self.area_pos['menu']),
             'StartMission': None,
             'AP_recover': None,
             'AtkIcon': None,
             'nero': None,
             'fufu': None,
-            'skills': list(len(9))
+            'skills': list(range(9))
         }
 
     def _save_img(self, name):
@@ -271,7 +271,7 @@ class Fgo(object):
         skill_imgs = list(range(9))
         for i in USED_SKILL:
             skill_imgs[i] = self.pic_shot_float(
-                (ski_x[i]-0.0138, ski_y-0.0222, ski_x[i]+0.0138, ski_y))
+                (ski_x[i]-0.0138, ski_y-0.0222, ski_x[i]+0.0138, ski_y), 's'+str(i))
         return skill_imgs
 
     def use_skill(self, turn):
@@ -282,29 +282,23 @@ class Fgo(object):
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
         ski_y = 0.8009
         # snap = 0.0734
-        time.sleep(0.5)
+        # time.sleep(0.5)
         if turn == 1:
             for i in USED_SKILL:
                 self.click_act(ski_x[i], ski_y, 0.05)
                 self.click_act(0.5, 0.5, 0.05)
-                self.click_act(0.0521, 0.4259, 2.8)
+                self.click_act(0.0521, 0.4259, 2.6)
             self.img['skills'] = self.get_skill_img()
         else:
             now_skill_img = self.get_skill_img()
-            for i in USED_SKILL:
-                if now_skill_img[i] != self.img['skills'][i]:
-                    self.click_act(ski_x[i], ski_y, 0.1)
-                    self.click_act(0.5, 0.5, 0.05)
-                    self.click_act(0.0521, 0.4259, 2.8)
+            if now_skill_img != self.img['skills']:
+                for i in USED_SKILL:
+                    if now_skill_img[i] != self.img['skills'][i]:
+                        # print('>>> skill', i, 'different.')
+                        self.click_act(ski_x[i], ski_y, 0.1)
+                        self.click_act(0.5, 0.5, 0.05)
+                        self.click_act(0.0521, 0.4259, 2.6)
                 self.img['skills'] = self.get_skill_img()
-
-        # beg = time.time()
-        # while self.getImg('AtkIcon') != self.img['AtkIcon']:
-        #     if 10 > time.time() - beg > 6:
-        #         logging.warning('Click avator wrongly,auto-fixed.')
-        #         self.click_act(0.0521, 0.4259, 0.2)
-        # logging.info(
-        #     '<E{}/{}> - Skills using over.'.format(CURRENT_EPOCH, EPOCH))
 
     def attack(self):
         logging.info(
@@ -413,6 +407,7 @@ class Fgo(object):
                 '<M{}/{}> - Enter loading page, battle finish.'.format(CURRENT_EPOCH, EPOCH))
             global CLICK_BREAK_TIME
             CLICK_BREAK_TIME = 3.5
+            logging.info('<M{}/{}> - Get loading page, end epoch{}.'.format(CURRENT_EPOCH, EPOCH, CURRENT_EPOCH))
             time.sleep(1)
             return 'CONTINUE'
 
@@ -530,7 +525,7 @@ class Fgo(object):
                 os.remove('./data/{}'.format(x))
 
     def save_AP_recover_pic(self):
-        logging.info('>>> Saving AP_recover pic...')
+        print('>>> Saving AP_recover pic...')
         # choose AP bar:
         self.click_act(0.1896, 0.9611, 1)
         self._save_img('AP_recover')
