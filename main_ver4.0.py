@@ -120,7 +120,7 @@ class Fgo(object):
 
             self.width = abs(self.scr_pos2[0] - self.scr_pos1[0])
             self.height = abs(self.scr_pos2[1] - self.scr_pos1[1])
-            
+
         # ===== position info: =====
         self.area_pos = {
             # 'StartMission': (0.875, 0.9194, 0.9807, 0.9565),
@@ -132,7 +132,6 @@ class Fgo(object):
             'nero': (0.3726, 0.381, 0.4458, 0.5225),
             'AtkIcon': (0.8708, 0.7556, 0.8979, 0.8009),
             'fufu': (0.4167, 0.9260, 0.4427, 1),
-            'skills': ()
         }
         self.img = {
             # `pre` imgs were saved before code running.
@@ -145,7 +144,7 @@ class Fgo(object):
             'AtkIcon': None,
             'nero': None,
             'fufu': None,
-            'skills': None
+            'skills': list(len(9))
         }
 
     def _save_img(self, name):
@@ -265,7 +264,17 @@ class Fgo(object):
                         raise RuntimeError(
                             'Can\'t get START_MISSION tag for 10s')
 
-    def use_skill(self, skills):
+    def get_skill_img(self):
+        ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
+                 0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
+        ski_y = 0.8009
+        skill_imgs = list(range(9))
+        for i in USED_SKILL:
+            skill_imgs[i] = self.pic_shot_float(
+                (ski_x[i]-0.0138, ski_y-0.0222, ski_x[i]+0.0138, ski_y))
+        return skill_imgs
+
+    def use_skill(self, turn):
         # position of skills:
         logging.info(
             '<E{}/{}> - Now using skills...'.format(CURRENT_EPOCH, EPOCH))
@@ -274,18 +283,28 @@ class Fgo(object):
         ski_y = 0.8009
         # snap = 0.0734
         time.sleep(0.5)
-        for i in skills:
-            self.click_act(ski_x[i], ski_y, 0.05)
-            self.click_act(0.5, 0.5, 0.05)
-            self.click_act(0.0521, 0.4259, 0.2)
-            
-            beg = time.time()
-            while self.getImg('AtkIcon') != self.img['AtkIcon']:
-                if 10 > time.time() - beg > 6:
-                    logging.warning('Click avator wrongly,auto-fixed.')
-                    self.click_act(0.0521, 0.4259, 0.2)
-        logging.info(
-            '<E{}/{}> - Skills using over.'.format(CURRENT_EPOCH, EPOCH))
+        if turn == 1:
+            for i in USED_SKILL:
+                self.click_act(ski_x[i], ski_y, 0.05)
+                self.click_act(0.5, 0.5, 0.05)
+                self.click_act(0.0521, 0.4259, 2.8)
+            self.img['skills'] = self.get_skill_img()
+        else:
+            now_skill_img = self.get_skill_img()
+            for i in USED_SKILL:
+                if now_skill_img[i] != self.img['skills'][i]:
+                    self.click_act(ski_x[i], ski_y, 0.1)
+                    self.click_act(0.5, 0.5, 0.05)
+                    self.click_act(0.0521, 0.4259, 2.8)
+                self.img['skills'] = self.get_skill_img()
+
+        # beg = time.time()
+        # while self.getImg('AtkIcon') != self.img['AtkIcon']:
+        #     if 10 > time.time() - beg > 6:
+        #         logging.warning('Click avator wrongly,auto-fixed.')
+        #         self.click_act(0.0521, 0.4259, 0.2)
+        # logging.info(
+        #     '<E{}/{}> - Skills using over.'.format(CURRENT_EPOCH, EPOCH))
 
     def attack(self):
         logging.info(
@@ -416,7 +435,7 @@ class Fgo(object):
         else:
             return 0    # no match.
 
-    def one_turn_new(self):
+    def one_turn_new(self, turn):
         # uodate saved atk icon:
         if not self.img['AtkIcon']:
             self._save_img('AtkIcon')
@@ -425,8 +444,10 @@ class Fgo(object):
             self.click_act(0.3010, 0.0602, 0.1)
             self.click_act(0.1010, 0.0593, 0.1)
         if USE_SKILL:
-            self.use_skill(USED_SKILL)
-            time.sleep(0.5)
+            self.use_skill(turn)
+            # time.sleep(0.5)
+        # if turn == 1:
+        #     self.img['skills'] = self.get_skill_img()
         self.attack()
         time.sleep(1.5)
 
@@ -467,7 +488,8 @@ class Fgo(object):
             logging.info(
                 '<E{}/{}> - Start Turn {}'.format(CURRENT_EPOCH, EPOCH, i+1))
             # Here CD_num == i
-            status = self.one_turn_new()
+            # self.img['skills'] =self.get_skill_img()
+            status = self.one_turn_new(i+1)
 
             if Nero_MAX:
                 time.sleep(0.5)
