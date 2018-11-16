@@ -2,8 +2,6 @@
 import os
 import win32api
 import win32con
-import win32gui
-import win32ui
 import PIL
 import time
 from config_ver3 import *
@@ -297,7 +295,13 @@ class Fgo(object):
                         # print('>>> skill', i, 'different.')
                         self.click_act(ski_x[i], ski_y, 0.1)
                         self.click_act(0.5, 0.5, 0.05)
-                        self.click_act(0.0521, 0.4259, 2.6)
+                        self.click_act(0.0521, 0.4259, 0.2)
+                        # To see if skill is really used.
+                        beg = time.time()
+                        while self.getImg('AtkIcon') != self.img['AtkIcon']:
+                            if 10 > time.time() - beg > 4:
+                                logging.warning('Click avator wrongly,auto-fixed.')
+                                self.click_act(0.0521, 0.4259, 0.2)
                 self.img['skills'] = self.get_skill_img()
 
     def attack(self):
@@ -346,18 +350,17 @@ class Fgo(object):
                     return 0
                 else:
                     time.sleep(1)
+            # In first battle, save `atk_img`.
             else:
                 diff1 = compare_img_new(now_atk_img, real_atk, algo)
                 diff2 = compare_img_new(now_atk_img, real_loading, algo)
                 if DEBUG:
                     logging.debug(
-                        'Diff of now_img and ATK is: {}'.format(diff1))
-                    logging.debug(
-                        'Diff of now_img and LOADING is: {}'.format(diff2))
+                        'Diff(now, ATK)={}, Diff(now, LOADING)={}'.format(diff1, diff2))
                 condition = (diff2 == 0 and diff1 > 0) if mode == - \
                     1 else (diff1 < diff2 and diff2 != 0)
                 if condition:
-                    time.sleep(0.8)
+                    # time.sleep(0.8)
                     logging.info(
                         '<M{}/{}> - Detected status change, loaded over.'.format(CURRENT_EPOCH, EPOCH))
                     if sleep:
@@ -426,12 +429,12 @@ class Fgo(object):
         }
 
         if self.getImg(name) == self.img[name]:
-            return react_func[name]
+            return react_func[name]()
         else:
             return 0    # no match.
 
     def one_turn_new(self, turn):
-        # uodate saved atk icon:
+        # update saved atk icon:
         if not self.img['AtkIcon']:
             self._save_img('AtkIcon')
 
@@ -457,11 +460,15 @@ class Fgo(object):
                 raise RuntimeError('Running out of time.')
             for x in ('nero', 'AtkIcon', 'fufu', 'menu'):
                 res = self._react_change(x)
-                if res:
-                    if res == 'CONTINUE':
-                        break
-                    else:
-                        return res
+                if res == 'CONTINUE':
+                    break
+                elif res:   # `battle_over` or `next_turn`
+                    return res
+                # if res:
+                #     if res == 'CONTINUE':
+                #         break
+                #     else:
+                #         return res
             # click to skip something
             self.click_act(0.7771, 0.9627, CLICK_BREAK_TIME, info=False)
 
@@ -475,24 +482,21 @@ class Fgo(object):
             self.enter_battle(SUPPORT)
             # wait for going into loading page:
             time.sleep(3.5)
-            self.diff_atk = self.wait_loading(save_img=DEBUG, sleep=3)
+            self.diff_atk = self.wait_loading(save_img=DEBUG, sleep=2)
         else:
-            self.img['AtkIcon'] = self.img['AtkIcon']
+            self._save_img('AtkIcon')
 
         for i in range(50):
             logging.info(
                 '<E{}/{}> - Start Turn {}'.format(CURRENT_EPOCH, EPOCH, i+1))
             # Here CD_num == i
-            # self.img['skills'] =self.get_skill_img()
             status = self.one_turn_new(i+1)
-
             if Nero_MAX:
                 time.sleep(0.5)
                 if self.getImg('nero') == self.img['nero']:
                     self.click_act(0.3485, 0.7947, 0.5)
                     logging.warning(
                         '<M{}/{}> - Entered wrong battle, auto-fixed. battle finish.'.format(CURRENT_EPOCH, EPOCH))
-
             if status == 'BATTLE_OVER':
                 return 1
 
@@ -527,6 +531,7 @@ class Fgo(object):
     def save_AP_recover_pic(self):
         print('>>> Saving AP_recover pic...')
         # choose AP bar:
+        # self.pic_shot_float((0, 0, 1, 1), name='full')
         self.click_act(0.1896, 0.9611, 1)
         self._save_img('AP_recover')
         # click `exit`
