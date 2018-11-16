@@ -84,20 +84,20 @@ class Fgo(object):
                 res = tuple([int(x) for x in res[0].split(' ')])
                 self.scr_pos1 = res[:2]
                 self.scr_pos2 = res[2:]
-                print('==> Continue running keeping last position.')
+                print('>>> Continue running keeping last position.')
             else:
                 while 1:
-                    if input('==> Move cursor to top-left of Fgo, press ENTER (q to exit): ') == 'q':
-                        print('==> Running stop')
+                    if input('>>> Move cursor to top-left of Fgo, press ENTER (q to exit): ') == 'q':
+                        print('>>> Running stop')
                         os._exit(0)
                     self.scr_pos1 = self.c.get_pos()
-                    print('==> Get cursor at {}'.format(self.scr_pos1))
+                    print('>>> Get cursor at {}'.format(self.scr_pos1))
 
-                    if input('==> Move cursor to down-right of Fgo, press ENTER (q to exit): ') == 'q':
-                        print('==> Running stop')
+                    if input('>>> Move cursor to down-right of Fgo, press ENTER (q to exit): ') == 'q':
+                        print('>>> Running stop')
                         os._exit(0)
                     self.scr_pos2 = self.c.get_pos()
-                    print('==> Get cursor at {}'.format(self.scr_pos2))
+                    print('>>> Get cursor at {}'.format(self.scr_pos2))
 
                     res = input('Continue? [y(continue) /n(reset) /q(quit)]:')
                     if res == 'n':
@@ -116,13 +116,12 @@ class Fgo(object):
                         ' ' + str(self.scr_pos2[0]) + \
                         ' ' + str(self.scr_pos2[1])
                     f.write(pos)
-                    print('==> Position info saved.')
+                    print('>>> Position info saved.')
 
             self.width = abs(self.scr_pos2[0] - self.scr_pos1[0])
             self.height = abs(self.scr_pos2[1] - self.scr_pos1[1])
-            # ---------------------sampled pix info-----------------------
-            # position info, type: 'name': (x1, y1, x2, y2)
-
+            
+        # ===== position info: =====
         self.area_pos = {
             # 'StartMission': (0.875, 0.9194, 0.9807, 0.9565),
             # 'AP_recover': (0.4583, 0.0556, 0.5391, 0.0926),
@@ -133,29 +132,31 @@ class Fgo(object):
             'nero': (0.3726, 0.381, 0.4458, 0.5225),
             'AtkIcon': (0.8708, 0.7556, 0.8979, 0.8009),
             'fufu': (0.4167, 0.9260, 0.4427, 1),
+            'skills': ()
         }
-
         self.img = {
-            # `pre` means this image was saves before code running.
+            # `pre` imgs were saved before code running.
             'pre_loading': PIL.Image.open('./data/loading.jpg'),
             'pre_atk': PIL.Image.open('./data/atk_ico.jpg'),
             # save during running:
-            'menu': self.pic_shot_float(self.area_pos['menu']),
+            'menu': self._save_img('menu'),
             'StartMission': None,
             'AP_recover': None,
             'AtkIcon': None,
             'nero': None,
-            'fufu': None
+            'fufu': None,
+            'skills': None
         }
-        # get a screen shot of menu icon:
-        if DEBUG:
-            self.img['menu'].save('./data/menu.jpg')
-        # print('[DEBUG {}] Window width(x) = {}, height(y) = {}'.format(
-        #    time.strftime('%H:%M:%S'), self.width, self.height))
 
     def _save_img(self, name):
-        self.img[name] = self.pic_shot_float(self.area_pos[name])
+        if DEBUG:
+            self.img[name] = self.pic_shot_float(self.area_pos[name], name)
+        else:
+            self.img[name] = self.pic_shot_float(self.area_pos[name])
         return self.img[name]
+
+    def getImg(self, name):
+        return self.pic_shot_float(self.area_pos[name])
 
     def monitor_cursor_pos(self):
         while 1:
@@ -165,9 +166,9 @@ class Fgo(object):
                 y = (y-self.scr_pos1[1])/self.height
                 pos = (round(x, 4), round(y, 4))
             else:
-                pos = 'Not in Fgo window.'
+                pos = 'Not in Fgo.'
             logging.info(
-                '<M{}/{}> Now float pos: {}, real: {}'.format(CURRENT_EPOCH, EPOCH, pos, self.c.get_pos()))
+                '<M{}/{}> Float pos: {}, real: {}'.format(CURRENT_EPOCH, EPOCH, pos, self.c.get_pos()))
             time.sleep(0.5)
 
     def _set(self, float_x, float_y):
@@ -191,7 +192,7 @@ class Fgo(object):
 
     def send_mail(self, status):
         # status: 'err' or 'done'
-        self.pic_shot_float((0, 0, 1, 1), './data/final_shot.jpg')
+        self.pic_shot_float((0, 0, 1, 1), 'final_shot')
         with open('fgo.LOG', 'r') as f:
             res = f.readlines()
             res = [x.replace('<', '&lt;') for x in res]
@@ -221,10 +222,10 @@ class Fgo(object):
             server.login(FROM_ADDRESS, PASSWD)
             server.sendmail(FROM_ADDRESS, [TO_ADDRESS], msg.as_string())
             server.quit()
-            print('==> Mail sent successfully. Please check it.')
+            print('>>> Mail sent successfully. Please check it.')
         except Exception as e:
             print('\nError type: ', e)
-            print('==> Mail sent failed. Maybe there are something wrong.')
+            print('>>> Mail sent failed. Maybe there are something wrong.')
 
     def enter_battle(self, supNo=8):
         # [init by yourself] put the tag of battle at the top of screen.
@@ -243,15 +244,13 @@ class Fgo(object):
         start_x = 0.9281
         if not self.img['StartMission']:
             self._save_img('StartMission')
-            if DEBUG:
-                self.img['StartMission'].save('./data/StartMission.jpg')
             self.click_act(start_x, start_y, 1)
             if Choose_item:
                 self.click_act(0.6469, 0.9131, 1)
         else:
             time1 = time.time()
             while 1:
-                if self.pic_shot_float(self.area_pos['StartMission']) == self.img['StartMission']:
+                if self.getImg('StartMission') == self.img['StartMission']:
                     self.click_act(start_x, start_y, 1)
                     if Choose_item:
                         self.click_act(0.6469, 0.9131, 1)
@@ -259,7 +258,7 @@ class Fgo(object):
 
                 elif time.time() - time1 > 10:
                     self.click_act(sup_tag_x, sup_tag_y, 1)
-                    if self.pic_shot_float(self.area_pos['StartMission']) != self.img['StartMission']:
+                    if self.getImg('StartMission') != self.img['StartMission']:
                         logging.error(
                             '<M{}/{}> - Can\'t get START_MISSION tag for 10s.'.format(CURRENT_EPOCH, EPOCH))
                         self.send_mail('Error')
@@ -279,9 +278,9 @@ class Fgo(object):
             self.click_act(ski_x[i], ski_y, 0.05)
             self.click_act(0.5, 0.5, 0.05)
             self.click_act(0.0521, 0.4259, 0.2)
-
+            
             beg = time.time()
-            while self.pic_shot_float(self.area_pos['AtkIcon']) != self.img['AtkIcon']:
+            while self.getImg('AtkIcon') != self.img['AtkIcon']:
                 if 10 > time.time() - beg > 6:
                     logging.warning('Click avator wrongly,auto-fixed.')
                     self.click_act(0.0521, 0.4259, 0.2)
@@ -291,17 +290,15 @@ class Fgo(object):
     def attack(self):
         logging.info(
             '<E{}/{}> - Now start attacking....'.format(CURRENT_EPOCH, EPOCH))
-
         # click attack icon:
         self.click_act(0.8823, 0.8444, 1)
-
         # use normal atk card:
         # normal atk card position:
         atk_card_x = [0.1003+0.2007*x for x in range(5)]
         for i in range(5):
             self.click_act(atk_card_x[i], 0.7019, ATK_SLEEP_TIME)
             if i == 0 and USE_ULTIMATE:
-                # logging.info('==> Using Utimate skills...')
+                # logging.info('>>> Using Utimate skills...')
                 time.sleep(0.5)
                 ult_x = [0.3171, 0.5005, 0.6839]
                 ult_y = 0.2833
@@ -317,9 +314,7 @@ class Fgo(object):
         float_x1, float_y1, float_x2, float_y2 = pos
         # error: 关闭屏幕缩放！关闭屏幕缩放！
         x1, y1 = self._set(float_x1, float_y1)
-        # self.click_act(x1, y1, 1)
         x2, y2 = self._set(float_x2, float_y2)
-        # self.click_act(x2, y2, 1)
         return pic_shot(x1, y1, x2, y2, name)
 
     def wait_loading(self, save_img=False, algo=0, sleep=None, mode=0):
@@ -328,15 +323,13 @@ class Fgo(object):
         real_loading = self.img['pre_loading']
 
         for i in range(100):
-            now_atk_img = self.pic_shot_float(self.area_pos['AtkIcon'])
-            if DEBUG:
-                now_atk_img.save('./data/now_loading.jpg')
+            now_atk_img = self.getImg('AtkIcon')
             if not i:
                 logging.info('<LOAD> - Monitoring at area1, Now loading...')
             if CURRENT_EPOCH != 1:
                 if now_atk_img == self.img['AtkIcon']:
                     logging.info(
-                        '<M{}/{}> - Detected status change, finish loading.'.format(CURRENT_EPOCH, EPOCH))
+                        '<M{}/{}> - Get status change, finish loading.'.format(CURRENT_EPOCH, EPOCH))
                     return 0
                 else:
                     time.sleep(1)
@@ -360,7 +353,6 @@ class Fgo(object):
                     return diff1
                 elif not self.img['fufu']:
                     self._save_img('fufu')
-                    self.img['fufu'].save('./data/fufu.jpg')
                 time.sleep(1)
 
         logging.error(
@@ -377,9 +369,8 @@ class Fgo(object):
         - hash: use hash algorithm or compare image simply.
         '''
         real_loading = target
-        now_atk_img = self.pic_shot_float((x1, y1, x2, y2))
-        if DEBUG:
-            now_atk_img.save('./data/sample.jpg')
+        name = 'Now_atk' if DEBUG else None
+        now_atk_img = self.pic_shot_float((x1, y1, x2, y2), name=name)
         if hash:
             return compare_img_new(now_atk_img, real_loading, 0)
         else:
@@ -420,8 +411,8 @@ class Fgo(object):
             'menu': menu
         }
 
-        if self.pic_shot_float(self.area_pos[name]) == self.img[name]:
-            return react_func[name]()
+        if self.getImg(name) == self.img[name]:
+            return react_func[name]
         else:
             return 0    # no match.
 
@@ -429,8 +420,6 @@ class Fgo(object):
         # uodate saved atk icon:
         if not self.img['AtkIcon']:
             self._save_img('AtkIcon')
-            if DEBUG:
-                self.img['AtkIcon'].save('./data/save_new_atk.jpg')
 
         if ATK_BEHIND_FIRST:
             self.click_act(0.3010, 0.0602, 0.1)
@@ -441,9 +430,8 @@ class Fgo(object):
         self.attack()
         time.sleep(1.5)
 
-        # Start waiting status change:
+        # Monitoring status change:
         beg_time = time.time()
-        # compare atk icon to the last saved icon.
         j = 0
         while 1:
             if time.time() - beg_time > 150:
@@ -451,7 +439,6 @@ class Fgo(object):
                     'Running out of time, No status change detected for 2min30s.')
                 self.send_mail('Err')
                 raise RuntimeError('Running out of time.')
-
             for x in ('nero', 'AtkIcon', 'fufu', 'menu'):
                 res = self._react_change(x)
                 if res:
@@ -459,13 +446,12 @@ class Fgo(object):
                         break
                     else:
                         return res
-
             # click to skip something
             self.click_act(0.7771, 0.9627, CLICK_BREAK_TIME, info=False)
 
             if not j:
                 logging.info(
-                    '<M{}/{}> - Monitoring (0.7771, 0.9627), no change...'.format(CURRENT_EPOCH, EPOCH))
+                    '<M{}/{}> - Monitoring, no change got...'.format(CURRENT_EPOCH, EPOCH))
             j += 1
 
     def one_battle(self, go_on=False):
@@ -485,10 +471,11 @@ class Fgo(object):
 
             if Nero_MAX:
                 time.sleep(0.5)
-                if self.pic_shot_float((0.3726, 0.381, 0.4458, 0.5225)) == self.img['nero']:
+                if self.getImg('nero') == self.img['nero']:
                     self.click_act(0.3485, 0.7947, 0.5)
-                    logging.warning('<M{}/{}> - Entered wrong battle, auto-fixed. battle finish.'.format(CURRENT_EPOCH, EPOCH))
-            
+                    logging.warning(
+                        '<M{}/{}> - Entered wrong battle, auto-fixed. battle finish.'.format(CURRENT_EPOCH, EPOCH))
+
             if status == 'BATTLE_OVER':
                 return 1
 
@@ -498,24 +485,22 @@ class Fgo(object):
             'Running over 50 turns, program was forced to stop.')
 
     def use_apple(self):
-        # ap_img = self.pic_shot_float(self.area_pos['AP_recover'])
-        # ap_img.save('./data/now_ap.jpg')
-        if self.pic_shot_float(self.area_pos['AP_recover']) == self.img['AP_recover']:
-            logging.info('==> Using apple...')
+        if self.getImg('AP_recover') == self.img['AP_recover']:
+            logging.info('>>> Using apple...')
             # choose apple:
             self.click_act(0.5, 0.4463, 0.7)
             # choose OK:
             self.click_act(0.6563, 0.7824, 1)
-            logging.info('==> Apple using over.')
+            logging.info('>>> Apple using over.')
 
             global EPOCH, CURRENT_EPOCH
             if EPOCH - CURRENT_EPOCH < ONE_APPLE_BATTLE - 1 and CLEAR_AP:
-                EPOCH=CURRENT_EPOCH + ONE_APPLE_BATTLE - 1
+                EPOCH = CURRENT_EPOCH + ONE_APPLE_BATTLE - 1
                 logging.info(
                     'Auto change EPOCH to {} to use all AP.'.format(EPOCH))
 
     def clear_data(self):
-        files=os.listdir('./data')
+        files = os.listdir('./data')
         for x in files:
             if x in ('atk_ico.jpg', 'loading.jpg', 'init_pos.txt'):
                 continue
@@ -523,11 +508,10 @@ class Fgo(object):
                 os.remove('./data/{}'.format(x))
 
     def save_AP_recover_pic(self):
-        logging.info('==> Saving AP_recover pic...')
+        logging.info('>>> Saving AP_recover pic...')
         # choose AP bar:
         self.click_act(0.1896, 0.9611, 1)
         self._save_img('AP_recover')
-        # self.img['AP_recover'].save('./data/ap.jpg')
         # click `exit`
         self.click_act(0.5, 0.8630, 0.5)
 
@@ -537,17 +521,17 @@ class Fgo(object):
             self.click_act(0.3485, 0.7947, 0.5)
 
     def run(self):
-        beg=time.time()
+        beg = time.time()
         self.save_AP_recover_pic()
         for j in range(EPOCH):
             print(
-                '\n=====<< Battle EPOCH{} Start >>====='.format(j+1))
+                '\n -----<< EPOCH{} START >>-----'.format(j+1))
             global CURRENT_EPOCH
             CURRENT_EPOCH += 1
             self.one_battle()
             time.sleep(1)
             # between battles:
-        end=time.time()
+        end = time.time()
         logging.info('Total time use: {:.1f}min, <{:.1f}min on avarage.>'.format(
             (end-beg)/60, (end-beg)/(60*EPOCH)))
         if SEND_MAIL:
@@ -557,7 +541,7 @@ class Fgo(object):
 
 if __name__ == '__main__':
     get_log()
-    fgo=Fgo(full_screen=FULL_SCREEN, sleep=False)
+    fgo = Fgo(full_screen=FULL_SCREEN, sleep=False)
     # fgo.one_battle(go_on=True)
     # fgo.send_mail('test')
     # fgo.monitor_cursor_pos()
