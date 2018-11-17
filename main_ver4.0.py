@@ -77,7 +77,7 @@ class Fgo(object):
                 time.sleep(1)
         else:
             if Opt.keep:
-                with open('./data/init_pos.txt', 'r') as f:
+                with open('./data/INIT_POS', 'r') as f:
                     res = f.readlines()
                 res = tuple([int(x) for x in res[0].split(' ')])
                 self.scr_pos1 = res[:2]
@@ -109,7 +109,7 @@ class Fgo(object):
                         logging.info(
                             'Start in %d s, make sure the window not covered.' % (3-x))
                         time.sleep(1)
-                with open('./data/init_pos.txt', 'w') as f:
+                with open('./data/INIT_POS', 'w') as f:
                     pos = str(self.scr_pos1[0]) + ' ' + str(self.scr_pos1[1]) + \
                         ' ' + str(self.scr_pos2[0]) + \
                         ' ' + str(self.scr_pos2[1])
@@ -417,7 +417,7 @@ class Fgo(object):
         def menu():
             logging.info(
                 '<M{}/{}> - Detected status change, battle finish.'.format(CURRENT_EPOCH, EPOCH))
-            global PRE_BREAK_TIME
+            global PRE_BREAK_TIME, CLICK_BREAK_TIME
             CLICK_BREAK_TIME = PRE_BREAK_TIME
             return 'BATTLE_OVER'
 
@@ -523,7 +523,7 @@ class Fgo(object):
     def clear_data(self):
         files = os.listdir('./data')
         for x in files:
-            if x in ('atk_ico.jpg', 'loading.jpg', 'init_pos.txt'):
+            if x in ('atk_ico.jpg', 'loading.jpg', 'INIT_POS'):
                 continue
             else:
                 os.remove('./data/{}'.format(x))
