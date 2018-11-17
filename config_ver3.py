@@ -7,15 +7,13 @@ DEBUG = False       # type: bool
 # ======<Important>====== #
 # num 0~8: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
 SUPPORT = 6     # default berserker := 7
-EPOCH = 3  # num of battles you want to run (type: int)
+EPOCH = 6  # num of battles you want to run (type: int)
 
 CLEAR_AP = True
-
 ONE_APPLE_BATTLE = 3    # all AP // one battle AP cost. (type: int)
 
 # ======<User Setting>====== #
 FULL_SCREEN = False  # type: bool
-
 ATK_BEHIND_FIRST = False
 
 # use ultimate skill or not: (type: bool)
@@ -27,9 +25,6 @@ USE_SKILL = True
 # skills list: (type: tuple, start from 0)
 # reset the order of numbers to change skill orders.
 USED_SKILL = (0, 1, 2, 3, 4, 5, 6, 7, 8)
-
-# time to sleep after using skills, you'd better keep the default value.(type: float)
-SKILL_SLEEP_TIME = 2.8
 
 # time to sleep after clicking atk cards:
 # you'd better keep the default value.(type: float)

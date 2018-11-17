@@ -272,36 +272,37 @@ class Fgo(object):
                 (ski_x[i]-0.0138, ski_y-0.0222, ski_x[i]+0.0138, ski_y), 's'+str(i))
         return skill_imgs
 
+    def _use_one_skill(self, skill_x_pos):
+        flag = 1
+        self.click_act(skill_x_pos, 0.8009, 0.1)
+        self.click_act(0.5, 0.5, 0.05)
+        self.click_act(0.0521, 0.4259, 0.2)
+        # To see if skill is really used.
+        beg = time.time()
+        while self.getImg('AtkIcon') != self.img['AtkIcon']:
+            if 10 > time.time() - beg > 4:
+                logging.warning('Click avator wrongly,auto-fixed.')
+                self.click_act(0.0521, 0.4259, 0.2)
+                flag = -1
+        return flag
+
     def use_skill(self, turn):
         # position of skills:
         logging.info(
             '<E{}/{}> - Now using skills...'.format(CURRENT_EPOCH, EPOCH))
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
-                 0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
-        ski_y = 0.8009
+                 0.3745, 0.4469, 0.5521, 0.6234, 0.6958]    # ski_y = 0.8009
         # snap = 0.0734
-        # time.sleep(0.5)
         if turn == 1:
             for i in USED_SKILL:
-                self.click_act(ski_x[i], ski_y, 0.05)
-                self.click_act(0.5, 0.5, 0.05)
-                self.click_act(0.0521, 0.4259, 2.6)
+                self._use_one_skill(ski_x[i])
             self.img['skills'] = self.get_skill_img()
         else:
             now_skill_img = self.get_skill_img()
             if now_skill_img != self.img['skills']:
                 for i in USED_SKILL:
                     if now_skill_img[i] != self.img['skills'][i]:
-                        # print('>>> skill', i, 'different.')
-                        self.click_act(ski_x[i], ski_y, 0.1)
-                        self.click_act(0.5, 0.5, 0.05)
-                        self.click_act(0.0521, 0.4259, 0.2)
-                        # To see if skill is really used.
-                        beg = time.time()
-                        while self.getImg('AtkIcon') != self.img['AtkIcon']:
-                            if 10 > time.time() - beg > 4:
-                                logging.warning('Click avator wrongly,auto-fixed.')
-                                self.click_act(0.0521, 0.4259, 0.2)
+                        self._use_one_skill(ski_x[i])
                 self.img['skills'] = self.get_skill_img()
 
     def attack(self):
@@ -410,7 +411,8 @@ class Fgo(object):
                 '<M{}/{}> - Enter loading page, battle finish.'.format(CURRENT_EPOCH, EPOCH))
             global CLICK_BREAK_TIME
             CLICK_BREAK_TIME = 3.5
-            logging.info('<M{}/{}> - Get loading page, end epoch{}.'.format(CURRENT_EPOCH, EPOCH, CURRENT_EPOCH))
+            logging.info(
+                '<M{}/{}> - Get loading page, end epoch{}.'.format(CURRENT_EPOCH, EPOCH, CURRENT_EPOCH))
             time.sleep(1)
             return 'CONTINUE'
 
