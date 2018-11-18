@@ -22,6 +22,7 @@ Args.add_argument('--keep', '-k', action='store_true',
                   help='To keep the window-position same as the last time.')
 Args.add_argument('--debug', '-d', action='store_true',
                   help='Enter DEBUG mode.')
+Args.add_argument('--ContinueRun', '-c', action='store_true', help='Continue running in a battle.')
 Opt = Args.parse_args()
 
 global DEBUG, EPOCH
@@ -275,15 +276,17 @@ class Fgo(object):
     def _use_one_skill(self, skill_x_pos):
         flag = 1
         self.click_act(skill_x_pos, 0.8009, 0.1)
-        self.click_act(0.5, 0.5, 0.05)
+        self.click_act(0.5, 0.5, 0.1)
         self.click_act(0.0521, 0.4259, 0.2)
         # To see if skill is really used.
         beg = time.time()
         while self.getImg('AtkIcon') != self.img['AtkIcon']:
-            if 10 > time.time() - beg > 4:
+            if 6 > time.time() - beg > 5:
                 logging.warning('Click avator wrongly,auto-fixed.')
                 self.click_act(0.0521, 0.4259, 0.2)
                 flag = -1
+            if time.time() - beg > 6:
+                return flag
         return flag
 
     def use_skill(self, turn):
@@ -296,6 +299,9 @@ class Fgo(object):
         if turn == 1:
             for i in USED_SKILL:
                 self._use_one_skill(ski_x[i])
+            # 小伊丽的三技能...
+            self.click_act(0.5521, 0.8009, 0.3)
+            self.click_act(0.0521, 0.4259, 0.1)
             self.img['skills'] = self.get_skill_img()
         else:
             now_skill_img = self.get_skill_img()
@@ -303,6 +309,9 @@ class Fgo(object):
                 for i in USED_SKILL:
                     if now_skill_img[i] != self.img['skills'][i]:
                         self._use_one_skill(ski_x[i])
+                # 小伊丽的三技能...
+                self.click_act(0.5521, 0.8009, 0.3)
+                self.click_act(0.0521, 0.4259, 0.1)
                 self.img['skills'] = self.get_skill_img()
 
     def attack(self):
@@ -512,6 +521,7 @@ class Fgo(object):
             logging.info('>>> Using apple...')
             # choose apple:
             self.click_act(0.5, 0.4463, 0.7)
+            self.click_act(0.5, 0.6473, 0.7)
             # choose OK:
             self.click_act(0.6563, 0.7824, 1)
             logging.info('>>> Apple using over.')
@@ -566,7 +576,9 @@ class Fgo(object):
 if __name__ == '__main__':
     get_log()
     fgo = Fgo(full_screen=FULL_SCREEN, sleep=False)
-    # fgo.one_battle(go_on=True)
     # fgo.send_mail('test')
     # fgo.monitor_cursor_pos()
-    fgo.run()
+    if Opt.ContinueRun:
+        fgo.one_battle(go_on=True)
+    else:    
+        fgo.run()

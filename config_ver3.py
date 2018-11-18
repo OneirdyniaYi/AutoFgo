@@ -6,7 +6,7 @@ DEBUG = False       # type: bool
 
 # ======<Important>====== #
 # num 0~8: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
-SUPPORT = 6     # default berserker := 7
+SUPPORT = 4     # default berserker := 7
 EPOCH = 6  # num of battles you want to run (type: int)
 
 CLEAR_AP = True
