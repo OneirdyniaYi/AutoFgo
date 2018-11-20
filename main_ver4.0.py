@@ -465,7 +465,10 @@ class Fgo(object):
         beg_time = time.time()
         j = 0
         while 1:
-            if time.time() - beg_time > 150:
+            if 125 > time.time() - beg_time > 120:
+                self.click_act(0.0521, 0.4259, 1)
+                logging.warning('Something wrong. Trying to fix it.')
+            elif time.time() - beg_time > 150:
                 logging.error(
                     'Running out of time, No status change detected for 2min30s.')
                 self.send_mail('Err')
