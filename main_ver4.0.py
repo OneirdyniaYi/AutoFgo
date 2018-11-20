@@ -38,7 +38,7 @@ def get_log():
     logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s - %(levelname)s]: %(message)s',
                         datefmt='%H:%M:%S', filename='fgo.LOG', filemode='w')
     console = logging.StreamHandler()
-    console.setLevel(logging.ERROR)
+    console.setLevel(logging.INFO)
     if DEBUG:
         console.setLevel(logging.DEBUG)
     console.setFormatter(logging.Formatter(
@@ -285,7 +285,7 @@ class Fgo(object):
         # To see if skill is really used.
         beg = time.time()
         while self.getImg('AtkIcon') != self.img['AtkIcon']:
-            if 5 > time.time() - beg > 4:
+            if 6 > time.time() - beg > 5:
                 logging.warning('Click avator wrongly,auto-fixed.')
                 self.click_act(0.0521, 0.4259, 0.2)
                 flag = -1
@@ -507,7 +507,7 @@ class Fgo(object):
             # choose OK:
             self.click_act(0.6563, 0.7824, 1)
             logging.info('>>> Apple using over.')
-
+            time.sleep(2.5)
             global EPOCH, CURRENT_EPOCH
             if EPOCH - CURRENT_EPOCH < ONE_APPLE_BATTLE - 1 and CLEAR_AP:
                 EPOCH = CURRENT_EPOCH + ONE_APPLE_BATTLE - 1
