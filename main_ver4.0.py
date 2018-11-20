@@ -1,4 +1,5 @@
 # coding: utf-8
+# author: Why
 import os
 import win32api
 import win32con
@@ -23,6 +24,7 @@ Args.add_argument('--keep', '-k', action='store_true',
 Args.add_argument('--debug', '-d', action='store_true',
                   help='Enter DEBUG mode.')
 Args.add_argument('--ContinueRun', '-c', action='store_true', help='Continue running in a battle.')
+Args.add_argument('--locate', '-l', action='store_true', help='Monitor cursor\'s  position.')
 Opt = Args.parse_args()
 
 global DEBUG, EPOCH
@@ -36,7 +38,9 @@ def get_log():
     logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s - %(levelname)s]: %(message)s',
                         datefmt='%H:%M:%S', filename='fgo.LOG', filemode='w')
     console = logging.StreamHandler()
-    console.setLevel(logging.DEBUG)
+    console.setLevel(logging.ERROR)
+    if DEBUG:
+        console.setLevel(logging.DEBUG)
     console.setFormatter(logging.Formatter(
         '[%(asctime)s - %(levelname)s]: %(message)s', datefmt='%m-%d %H:%M:%S'))
     logging.getLogger().addHandler(console)
@@ -276,18 +280,17 @@ class Fgo(object):
     def _use_one_skill(self, skill_x_pos):
         flag = 1
         self.click_act(skill_x_pos, 0.8009, 0.1)
-        self.click_act(0.5, 0.5, 0.1)
-        self.click_act(0.0521, 0.4259, 0.2)
+        self.click_act(0.5, 0.5, 0.05)
+        self.click_act(0.0521, 0.4259, 0.15)
         # To see if skill is really used.
         beg = time.time()
         while self.getImg('AtkIcon') != self.img['AtkIcon']:
-            if 6 > time.time() - beg > 5:
+            if 5 > time.time() - beg > 4:
                 logging.warning('Click avator wrongly,auto-fixed.')
                 self.click_act(0.0521, 0.4259, 0.2)
                 flag = -1
             if time.time() - beg > 6:
                 return flag
-        time.sleep(0.1)
         return flag
 
     def use_skill(self, turn):
@@ -346,62 +349,37 @@ class Fgo(object):
         return pic_shot(x1, y1, x2, y2, name)
 
     def wait_loading(self, save_img=False, algo=0, sleep=None, mode=0):
-        # Sample in the attack icon per 1s, if loading process is over, break the loop.
-        real_atk = self.img['pre_atk']
-        real_loading = self.img['pre_loading']
-
-        for i in range(100):
+        # Sample in the attack icon per second, if loaded over, break the loop.
+        logging.info('<LOAD> - Monitoring at area1, Now loading...')
+        for _ in range(100):
             now_atk_img = self.getImg('AtkIcon')
-            if not i:
-                logging.info('<LOAD> - Monitoring at area1, Now loading...')
-            if CURRENT_EPOCH != 1:
-                if now_atk_img == self.img['AtkIcon']:
-                    logging.info(
-                        '<M{}/{}> - Get status change, finish loading.'.format(CURRENT_EPOCH, EPOCH))
-                    return 0
-                else:
-                    time.sleep(1)
+            if CURRENT_EPOCH != 1 and now_atk_img == self.img['AtkIcon']:
+                logging.info(
+                    '<M{}/{}> - Get status change, finish loading.'.format(CURRENT_EPOCH, EPOCH))
+                return 0
             # In first battle, save `atk_img`.
-            else:
-                diff1 = compare_img_new(now_atk_img, real_atk, algo)
-                diff2 = compare_img_new(now_atk_img, real_loading, algo)
-                if DEBUG:
-                    logging.debug(
-                        'Diff(now, ATK)={}, Diff(now, LOADING)={}'.format(diff1, diff2))
+            elif CURRENT_EPOCH == 1:
+                diff1 = compare_img_new(now_atk_img, self.img['pre_atk'], algo)
+                diff2 = compare_img_new(now_atk_img, self.img['pre_loading'], algo)
+                logging.debug(
+                    'Diff(now, ATK)={}, Diff(now, LOADING)={}'.format(diff1, diff2))
                 condition = (diff2 == 0 and diff1 > 0) if mode == - \
                     1 else (diff1 < diff2 and diff2 != 0)
                 if condition:
-                    # time.sleep(0.8)
                     logging.info(
-                        '<M{}/{}> - Detected status change, loaded over.'.format(CURRENT_EPOCH, EPOCH))
-                    if sleep:
-                        # wait for background anime finishing:
-                        time.sleep(sleep)
+                        '<M{}/{}> - Got status change, loaded over.'.format(CURRENT_EPOCH, EPOCH))
+                    # # wait for anime finishing:
+                    # if sleep:
+                    #     time.sleep(sleep)
                     return diff1
                 elif not self.img['fufu']:
                     self._save_img('fufu')
-                time.sleep(1)
+            time.sleep(1)
 
         logging.error(
             'Connection timeout. Maybe there are some problems with your network.')
         self.send_mail('Err')
         raise RuntimeError('Connection timeout during loading.')
-
-    def cal_diff(self, x1, y1, x2, y2, target, save_img=False, hash=True):
-        '''
-        sample in the position of attack icon to find that if the game is in the loading page.
-        return a BOOL type data.
-        - x1, y1, x2, y2: the position of the origin area.
-        - save_img: if you want to save images.
-        - hash: use hash algorithm or compare image simply.
-        '''
-        real_loading = target
-        name = 'Now_atk' if DEBUG else None
-        now_atk_img = self.pic_shot_float((x1, y1, x2, y2), name=name)
-        if hash:
-            return compare_img_new(now_atk_img, real_loading, 0)
-        else:
-            return 0 if now_atk_img == self.img['pre_atk'] else -1
 
     def _react_change(self, name):
         def nero():
@@ -580,9 +558,9 @@ class Fgo(object):
 if __name__ == '__main__':
     get_log()
     fgo = Fgo(full_screen=FULL_SCREEN, sleep=False)
-    # fgo.send_mail('test')
-    # fgo.monitor_cursor_pos()
     if Opt.ContinueRun:
         fgo.one_battle(go_on=True)
+    elif Opt.locate:
+        fgo.monitor_cursor_pos()
     else:    
         fgo.run()
