@@ -287,6 +287,7 @@ class Fgo(object):
                 flag = -1
             if time.time() - beg > 6:
                 return flag
+        time.sleep(0.1)
         return flag
 
     def use_skill(self, turn):
