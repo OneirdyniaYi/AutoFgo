@@ -3,11 +3,10 @@
 import os
 import win32api
 import win32con
-import PIL
+from PIL import ImageGrab
 import time
 from config_ver3 import *
 import logging
-from utils import pic_shot, compare_img_new
 from email.header import Header
 import smtplib
 from email.mime.multipart import MIMEMultipart, MIMEBase
@@ -23,8 +22,10 @@ Args.add_argument('--keep', '-k', action='store_true',
                   help='To keep the window-position same as the last time.')
 Args.add_argument('--debug', '-d', action='store_true',
                   help='Enter DEBUG mode.')
-Args.add_argument('--ContinueRun', '-c', action='store_true', help='Continue running in a battle.')
-Args.add_argument('--locate', '-l', action='store_true', help='Monitor cursor\'s  position.')
+Args.add_argument('--ContinueRun', '-c', action='store_true',
+                  help='Continue running in a battle.')
+Args.add_argument('--locate', '-l', action='store_true',
+                  help='Monitor cursor\'s  position.')
 Opt = Args.parse_args()
 
 global DEBUG, EPOCH
@@ -48,7 +49,7 @@ def get_log():
 
 class Cursor(object):
     def __init__(self, init_pos):
-        # init_pos：should be a tuple, set `False` to skip initing position.
+        # init_pos： type:tuple, set `False` to skip initing position.
         if init_pos != False and len(init_pos) == 2:
             self.move_to(init_pos)
 
@@ -90,13 +91,13 @@ class Fgo(object):
                 print('>>> Continue running keeping last position.')
             else:
                 while 1:
-                    if input('>>> Move cursor to top-left of Fgo, press ENTER (q to exit): ') == 'q':
+                    if input('>>> Move cursor to <top-left>, then press ENTER (q to exit): ') == 'q':
                         print('>>> Running stop')
                         os._exit(0)
                     self.scr_pos1 = self.c.get_pos()
                     print('>>> Get cursor at {}'.format(self.scr_pos1))
 
-                    if input('>>> Move cursor to down-right of Fgo, press ENTER (q to exit): ') == 'q':
+                    if input('>>> Move cursor to <down-right>, then press ENTER (q to exit): ') == 'q':
                         print('>>> Running stop')
                         os._exit(0)
                     self.scr_pos2 = self.c.get_pos()
@@ -120,34 +121,27 @@ class Fgo(object):
                         ' ' + str(self.scr_pos2[1])
                     f.write(pos)
                     print('>>> Position info saved.')
-
             self.width = abs(self.scr_pos2[0] - self.scr_pos1[0])
             self.height = abs(self.scr_pos2[1] - self.scr_pos1[1])
 
         # ===== position info: =====
         self.area_pos = {
-            # 'StartMission': (0.875, 0.9194, 0.9807, 0.9565),
-            # 'AP_recover': (0.4583, 0.0556, 0.5391, 0.0926),
             'menu': (0.0693, 0.7889, 0.1297, 0.8917),       # avator position
             'StartMission': (0.8984, 0.9352, 0.9542, 0.9630),
             'AP_recover': (0.2511, 0.177, 0.3304, 0.3158),
-            'support': (0.6257, 0.1558, 0.6803, 0.1997),
+            # 'support': (0.6257, 0.1558, 0.6803, 0.1997),
             'nero': (0.3726, 0.381, 0.4458, 0.5225),
             'AtkIcon': (0.8708, 0.7556, 0.8979, 0.8009),
             'fufu': (0.4167, 0.9260, 0.4427, 1),
         }
         self.img = {
-            # `pre` imgs were saved before code running.
-            'pre_loading': PIL.Image.open('./data/loading.jpg'),
-            'pre_atk': PIL.Image.open('./data/atk_ico.jpg'),
-            # save during running:
             'menu': self.pic_shot_float(self.area_pos['menu']),
+            'skills': list(range(9)),
             'StartMission': None,
             'AP_recover': None,
             'AtkIcon': None,
             'nero': None,
-            'fufu': None,
-            'skills': list(range(9))
+            'fufu': None
         }
 
     def _save_img(self, name):
@@ -346,40 +340,30 @@ class Fgo(object):
         # error: 关闭屏幕缩放！关闭屏幕缩放！
         x1, y1 = self._set(float_x1, float_y1)
         x2, y2 = self._set(float_x2, float_y2)
-        return pic_shot(x1, y1, x2, y2, name)
+        img = ImageGrab.grab(bbox=(x1, y1, x2, y2))
+        if name:
+            img.save('./data/{}.jpg'.format(name))
+        return img
 
-    def wait_loading(self, save_img=False, algo=0, sleep=None, mode=0):
-        # Sample in the attack icon per second, if loaded over, break the loop.
+    def wait_loading(self):
+        time.sleep(3.5)
+        # loading_img = self.getImg('AtkIcon')
         logging.info('<LOAD> - Monitoring at area1, Now loading...')
+        if not self.img['fufu']:
+            self._save_img('fufu')
         for _ in range(100):
-            now_atk_img = self.getImg('AtkIcon')
-            if CURRENT_EPOCH != 1 and now_atk_img == self.img['AtkIcon']:
-                logging.info(
-                    '<M{}/{}> - Get status change, finish loading.'.format(CURRENT_EPOCH, EPOCH))
+            if not self.img['AtkIcon'] and self.getImg('fufu') != self.img['fufu']:
+                logging.info('<LOAD> - Get status change, finish loading.')
+                time.sleep(3)
                 return 0
-            # In first battle, save `atk_img`.
-            elif CURRENT_EPOCH == 1:
-                diff1 = compare_img_new(now_atk_img, self.img['pre_atk'], algo)
-                diff2 = compare_img_new(now_atk_img, self.img['pre_loading'], algo)
-                logging.debug(
-                    'Diff(now, ATK)={}, Diff(now, LOADING)={}'.format(diff1, diff2))
-                condition = (diff2 == 0 and diff1 > 0) if mode == - \
-                    1 else (diff1 < diff2 and diff2 != 0)
-                if condition:
-                    logging.info(
-                        '<M{}/{}> - Got status change, loaded over.'.format(CURRENT_EPOCH, EPOCH))
-                    # # wait for anime finishing:
-                    # if sleep:
-                    #     time.sleep(sleep)
-                    return diff1
-                elif not self.img['fufu']:
-                    self._save_img('fufu')
-            time.sleep(1)
-
-        logging.error(
-            'Connection timeout. Maybe there are some problems with your network.')
+            elif self.img['AtkIcon'] and self.getImg('AtkIcon') == self.img['AtkIcon']:
+                logging.info('<LOAD> - Get status change, finish loading.')
+                return 0
+            else:
+                time.sleep(1)
+        logging.error('Connection timeout. Check your network.')
         self.send_mail('Err')
-        raise RuntimeError('Connection timeout during loading.')
+        raise RuntimeError('Connection timeout in loading.')
 
     def _react_change(self, name):
         def nero():
@@ -433,9 +417,6 @@ class Fgo(object):
             self.click_act(0.1010, 0.0593, 0.1)
         if USE_SKILL:
             self.use_skill(turn)
-            # time.sleep(0.5)
-        # if turn == 1:
-        #     self.img['skills'] = self.get_skill_img()
         self.attack()
         time.sleep(1.5)
 
@@ -457,11 +438,6 @@ class Fgo(object):
                     break
                 elif res:   # `battle_over` or `next_turn`
                     return res
-                # if res:
-                #     if res == 'CONTINUE':
-                #         break
-                #     else:
-                #         return res
             # click to skip something
             self.click_act(0.7771, 0.9627, CLICK_BREAK_TIME, info=False)
 
@@ -474,7 +450,6 @@ class Fgo(object):
         if not go_on:
             self.enter_battle(SUPPORT)
             # wait for going into loading page:
-            time.sleep(3.5)
             self.diff_atk = self.wait_loading(save_img=DEBUG, sleep=2)
         else:
             self._save_img('AtkIcon')
@@ -539,16 +514,17 @@ class Fgo(object):
     def run(self):
         beg = time.time()
         self.save_AP_recover_pic()
-        for j in range(EPOCH):
+        j = 0
+        while j<EPOCH:
             print(
                 '\n -----<< EPOCH{} START >>-----'.format(j+1))
             global CURRENT_EPOCH
             CURRENT_EPOCH += 1
             self.one_battle()
-            time.sleep(1)
-            # between battles:
+            time.sleep(0.5)
+            j+=1
         end = time.time()
-        logging.info('Total time use: {:.1f}min, <{:.1f}min on avarage.>'.format(
+        logging.info('Total time: {:.1f}(min), <{:.1f}(min) on avarage.>'.format(
             (end-beg)/60, (end-beg)/(60*EPOCH)))
         if SEND_MAIL:
             self.send_mail('Done')
@@ -562,5 +538,5 @@ if __name__ == '__main__':
         fgo.one_battle(go_on=True)
     elif Opt.locate:
         fgo.monitor_cursor_pos()
-    else:    
+    else:
         fgo.run()

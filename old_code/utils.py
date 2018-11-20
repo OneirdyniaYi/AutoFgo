@@ -29,12 +29,10 @@ def record_vedio():
 
 
 def pic_shot(x1, y1, x2, y2, fname=None):
-    beg = time.time()
     img = ImageGrab.grab(bbox=(x1, y1, x2, y2))
     # img = np.array(img.getdata(), np.uint8).reshape(img.size[1], img.size[0], 3)
     if fname:
         img.save('./data/{}.jpg'.format(fname))
-    end = time.time()
     # print('[SHOT {}] Get pic: {}, Time Use: {} s'.format(time.strftime('%H:%M:%S'), fname, end - beg))
     return img
 
