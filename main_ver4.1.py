@@ -18,6 +18,7 @@ CURRENT_EPOCH = 0
 PRE_BREAK_TIME = CLICK_BREAK_TIME
 Args = argparse.ArgumentParser()
 Args.add_argument('--epoch', '-e', type=int, help='Num of running battles.')
+Args.add_argument('--support', '-s', type=int, help='ID of support servent.')
 Args.add_argument('--keep', '-k', action='store_true',
                   help='To keep the window-position same as the last time.')
 Args.add_argument('--debug', '-d', action='store_true',
@@ -26,11 +27,12 @@ Args.add_argument('--ContinueRun', '-c', action='store_true',
                   help='Continue running in a battle.')
 Args.add_argument('--locate', '-l', action='store_true',
                   help='Monitor cursor\'s  position.')
-Opt = Args.parse_args()
+OPT = Args.parse_args()
 
-global DEBUG, EPOCH
-DEBUG = Opt.debug if Opt.debug else DEBUG
-EPOCH = Opt.epoch if Opt.epoch else EPOCH
+global DEBUG, EPOCH, SUPPORT
+DEBUG = OPT.debug if OPT.debug else DEBUG
+EPOCH = OPT.epoch if OPT.epoch else EPOCH
+SUPPORT = OPT.support if OPT.support else SUPPORT
 
 # ===== Main Code: =====
 
@@ -82,7 +84,7 @@ class Fgo(object):
                     'Start in %d s, Please enter FULL SCREEN.' % (5-x))
                 time.sleep(1)
         else:
-            if Opt.keep:
+            if OPT.keep:
                 with open('./data/INIT_POS', 'r') as f:
                     res = f.readlines()
                 res = tuple([int(x) for x in res[0].split(' ')])
@@ -536,9 +538,9 @@ class Fgo(object):
 if __name__ == '__main__':
     get_log()
     fgo = Fgo(full_screen=FULL_SCREEN, sleep=False)
-    if Opt.ContinueRun:
+    if OPT.ContinueRun:
         fgo.one_battle(go_on=True)
-    elif Opt.locate:
+    elif OPT.locate:
         fgo.monitor_cursor_pos()
     else:
         fgo.run()

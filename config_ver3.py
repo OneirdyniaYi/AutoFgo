@@ -1,13 +1,14 @@
+# coding: utf-8
 # Author: Why
 # ======<Special Mode>====== #
 Nero_MAX = False     # 尼禄祭！误触区域内有高难本
 Choose_item = False  # 万圣节！开始战斗前要选道具
-Yili = False
+Yili = False        # 剑龙娘三技能：需要满AP使用
 DEBUG = False       # type: bool
 
 # ======<Important>====== #
 # num 0~8: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
-SUPPORT = 4     # default berserker := 7
+SUPPORT = 7     # default berserker := 7
 EPOCH = 6  # num of battles you want to run (type: int)
 
 CLEAR_AP = True
@@ -59,14 +60,14 @@ SMTP_SERVER = 'smtp.qq.com'
 SMTP_PORT = 465
 
 # ======<DON'T EDIT>====== #
-# [WARRNING] dont't edit the following code unless you know what you are doing.
-# run config.py to judge that if your screen settings are well-worked.
+# dont't edit the following code unless you know what you are doing.
+# run config.py to find if your screen settings are well-worked.
 from PIL import ImageGrab
 
 
 def test():
     img = ImageGrab.grab()
-    img.save('screen_grab_test.jpg')
+    img.save('FullScreenGrab.jpg')
 
 
 if __name__ == '__main__':
