@@ -244,14 +244,18 @@ class Fgo(object):
             self._save_img('StartMission')
             self.click_act(start_x, start_y, 1)
             if Choose_item:
-                self.click_act(0.6469, 0.9131, 1)
+                self.click_act(0.5, 0.2866, 0.5)
+                self.click_act(0.6478, 0.7819, 0.5)
+                # self.click_act(0.6469, 0.9131, 0.5)
         else:
             time1 = time.time()
             while 1:
                 if self.getImg('StartMission') == self.img['StartMission']:
                     self.click_act(start_x, start_y, 1)
                     if Choose_item:
-                        self.click_act(0.6469, 0.9131, 1)
+                        self.click_act(0.5, 0.2866, 0.5)
+                        self.click_act(0.6478, 0.7819, 0.5)
+                        # self.click_act(0.6469, 0.9131, 1)
                     return 0
 
                 elif time.time() - time1 > 10:
@@ -273,11 +277,13 @@ class Fgo(object):
                 (ski_x[i]-0.0138, ski_y-0.0222, ski_x[i]+0.0138, ski_y), 's'+str(i))
         return skill_imgs
 
-    def _use_one_skill(self, skill_x_pos):
+    def _use_one_skill(self, skill_no):
         flag = 1
-        self.click_act(skill_x_pos, 0.8009, 0.1)
+        ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
+                 0.3745, 0.4469, 0.5521, 0.6234, 0.6958]    # ski_y = 0.8009
+        self.click_act(ski_x[skill_no], 0.8009, 0.1)
         self.click_act(0.5, 0.5, 0.1)
-        self.click_act(0.0521, 0.4259, 0.15)
+        self.click_act(0.0521, 0.4259, 0.2)
         # To see if skill is really used.
         beg = time.time()
         while self.getImg('AtkIcon') != self.img['AtkIcon']:
@@ -293,27 +299,24 @@ class Fgo(object):
         # position of skills:
         logging.info(
             '<E{}/{}> - Now using skills...'.format(CURRENT_EPOCH, EPOCH))
-        ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
-                 0.3745, 0.4469, 0.5521, 0.6234, 0.6958]    # ski_y = 0.8009
+        
         # snap = 0.0734
         if turn == 1:
             for i in USED_SKILL:
-                self._use_one_skill(ski_x[i])
+                self._use_one_skill(i)
             if Yili:
                 # 小伊丽的三技能...
-                self.click_act(0.5521, 0.8009, 0.3)
-                self.click_act(0.0521, 0.4259, 0.1)
+               self._use_one_skill(6)
             self.img['skills'] = self.get_skill_img()
         else:
             now_skill_img = self.get_skill_img()
             if now_skill_img != self.img['skills']:
                 for i in USED_SKILL:
                     if now_skill_img[i] != self.img['skills'][i]:
-                        self._use_one_skill(ski_x[i])
+                        self._use_one_skill(i)
                 if Yili:
                     # 小伊丽的三技能...
-                    self.click_act(0.5521, 0.8009, 0.3)
-                    self.click_act(0.0521, 0.4259, 0.1)
+                    self._use_one_skill(6)
                 self.img['skills'] = self.get_skill_img()
 
     def attack(self):
@@ -358,7 +361,8 @@ class Fgo(object):
         for _ in range(100):
             if not self.img['AtkIcon'] and self.getImg('fufu') != self.img['fufu']:
                 logging.info('<LOAD> - Get status change, finish loading.')
-                time.sleep(5)
+                for _ in range(14):
+                    self.click_act(0.7771, 0.9627, 0.5)
                 return 0
             elif self.img['AtkIcon'] and self.getImg('AtkIcon') == self.img['AtkIcon']:
                 logging.info('<LOAD> - Get status change, finish loading.')
@@ -428,7 +432,7 @@ class Fgo(object):
         beg_time = time.time()
         j = 0
         while 1:
-            if 125 > time.time() - beg_time > 120:
+            if 35 > time.time() - beg_time > 30:
                 self.click_act(0.0521, 0.4259, 1)
                 logging.warning('Something wrong. Trying to fix it.')
             elif time.time() - beg_time > 150:

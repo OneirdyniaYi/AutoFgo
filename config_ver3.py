@@ -11,7 +11,7 @@ DEBUG = False       # type: bool
 SUPPORT = 7     # default berserker := 7
 EPOCH = 6  # num of battles you want to run (type: int)
 
-CLEAR_AP = True
+CLEAR_AP = False
 ONE_APPLE_BATTLE = 3    # all AP // one battle AP cost. (type: int)
 
 # ======<User Setting>====== #
@@ -19,7 +19,7 @@ FULL_SCREEN = False  # type: bool
 ATK_BEHIND_FIRST = False
 
 # use ultimate skill or not: (type: bool)
-USE_ULTIMATE = True
+USE_ULTIMATE = False
 
 # use servants' skill or not: (type: bool)
 USE_SKILL = True
@@ -27,6 +27,7 @@ USE_SKILL = True
 # skills list: (type: tuple, start from 0)
 # reset the order of numbers to change skill orders.
 USED_SKILL = (0, 1, 2, 3, 4, 5, 6, 7, 8)
+USED_SKILL = (0, 1, 3, 6, 7, 8)
 
 # time to sleep after clicking atk cards:
 # you'd better keep the default value.(type: float)
