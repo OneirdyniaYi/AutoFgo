@@ -29,10 +29,11 @@ Args.add_argument('--locate', '-l', action='store_true',
                   help='Monitor cursor\'s  position.')
 OPT = Args.parse_args()
 
-global DEBUG, EPOCH, SUPPORT
+global DEBUG, EPOCH, SUPPORT, SEND_MAIL
 DEBUG = OPT.debug if OPT.debug else DEBUG
 EPOCH = OPT.epoch if OPT.epoch else EPOCH
 SUPPORT = OPT.support if OPT.support else SUPPORT
+SEND_MAIL = False if EPOCH < 5 or DEBUG else SEND_MAIL
 
 # ===== Main Code: =====
 
@@ -329,13 +330,12 @@ class Fgo(object):
         atk_card_x = [0.1003+0.2007*x for x in range(5)]
         for i in range(5):
             self.click_act(atk_card_x[i], 0.7019, ATK_SLEEP_TIME)
-            if i == 0 and USE_ULTIMATE:
+            if i == 0 and USED_ULTIMATE:
                 # logging.info('>>> Using Utimate skills...')
-                time.sleep(0.5)
+                time.sleep(0.1)
                 ult_x = [0.3171, 0.5005, 0.6839]
-                ult_y = 0.2833
-                for x in ult_x:
-                    self.click_act(x, ult_y, 0.1)
+                for j in USED_ULTIMATE:
+                    self.click_act(ult_x[j], 0.2833, 0.1)
         # To avoid `Can't use card` status:
         for i in range(3):
             self.click_act(atk_card_x[i], 0.7019, 0.1)

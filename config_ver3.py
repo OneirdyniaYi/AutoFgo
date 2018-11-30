@@ -1,12 +1,12 @@
 # coding: utf-8
 # Author: Why
-# ======<Special Mode>====== #
+# ======<Special Mode>======= #
 Nero_MAX = False     # 尼禄祭！误触区域内有高难本
 Choose_item = False  # 万圣节！开始战斗前要选道具
 Yili = False        # 剑龙娘三技能：需要满AP使用
 DEBUG = False       # type: bool
 
-# ======<Important>====== #
+# ======<Important>======= #
 # num 0~8: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
 SUPPORT = 7     # default berserker := 7
 EPOCH = 6  # num of battles you want to run (type: int)
@@ -14,12 +14,13 @@ EPOCH = 6  # num of battles you want to run (type: int)
 CLEAR_AP = False
 ONE_APPLE_BATTLE = 3    # all AP // one battle AP cost. (type: int)
 
-# ======<User Setting>====== #
+# ======<User Setting>======= #
 FULL_SCREEN = False  # type: bool
 ATK_BEHIND_FIRST = False
 
-# use ultimate skill or not: (type: bool)
-USE_ULTIMATE = False
+# ultimate skill list: (type: tuple, 0~2), set false to disable.
+USED_ULTIMATE = (0, 1, 2,)
+USED_ULTIMATE = (2,)
 
 # use servants' skill or not: (type: bool)
 USE_SKILL = True
@@ -42,7 +43,7 @@ CLICK_BREAK_TIME = 1
 # MASTER_SKILL_ROUND = 1
 # MASTER_SKILL = (0, 1, 2)
 
-# ======<Sync Setting>====== #
+# ======<Sync Setting>======= #
 # if sending email after code running stop.(type: bool)
 SEND_MAIL = True
 SEND_MAIL = False if EPOCH < 5 or DEBUG else SEND_MAIL
@@ -60,7 +61,7 @@ SMTP_SERVER = 'smtp.qq.com'
 # usable SMTP port, please check at your email settings.(type: int)
 SMTP_PORT = 465
 
-# ======<DON'T EDIT>====== #
+# ======<DON'T EDIT>======= #
 # dont't edit the following code unless you know what you are doing.
 # run config.py to find if your screen settings are well-worked.
 from PIL import ImageGrab
