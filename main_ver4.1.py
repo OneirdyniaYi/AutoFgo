@@ -332,7 +332,7 @@ class Fgo(object):
             self.click_act(atk_card_x[i], 0.7019, ATK_SLEEP_TIME)
             if i == 0 and USED_ULTIMATE:
                 # logging.info('>>> Using Utimate skills...')
-                time.sleep(0.1)
+                time.sleep(0.2)
                 ult_x = [0.3171, 0.5005, 0.6839]
                 for j in USED_ULTIMATE:
                     self.click_act(ult_x[j], 0.2833, 0.1)
