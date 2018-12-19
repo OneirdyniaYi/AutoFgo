@@ -20,7 +20,7 @@ ATK_BEHIND_FIRST = False
 
 # ultimate skill list: (type: tuple, 0~2), set false to disable.
 USED_ULTIMATE = (0, 1, 2,)
-USED_ULTIMATE = (2,)
+# USED_ULTIMATE = (1, 2,)
 
 # use servants' skill or not: (type: bool)
 USE_SKILL = True
@@ -28,7 +28,7 @@ USE_SKILL = True
 # skills list: (type: tuple, start from 0)
 # reset the order of numbers to change skill orders.
 USED_SKILL = (0, 1, 2, 3, 4, 5, 6, 7, 8)
-USED_SKILL = (0, 1, 3, 6, 7, 8)
+# USED_SKILL = (0, 1, 3, 4, 5, 6, 7, 8)
 
 # time to sleep after clicking atk cards:
 # you'd better keep the default value.(type: float)
