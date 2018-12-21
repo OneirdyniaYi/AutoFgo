@@ -158,9 +158,10 @@ class Fgo(object):
 
     def _load_last_img(self):
         root = './data/'
+        ignore = ('menu', 'nero', 'skills')
         for name in self.img.keys():
             fp = root + name + '.jpg'
-            if os.path.exists(fp):
+            if os.path.exists(fp) and name not in ignore:
                 self.img[name] = Image.open(fp)
             else:
                 logging.warn('File {}.jpg not found.'.format(name))
@@ -246,9 +247,7 @@ class Fgo(object):
 
     def _mission_start(self):
         # postion of `mission start` tag
-        start_y = 0.9398
-        start_x = 0.9281
-        self.click_act(start_x, start_y, 1)
+        self.click_act(0.9398, 0.9281, 1)
         if Choose_item:
             self.click_act(0.5, 0.2866, 0.5)
             self.click_act(0.6478, 0.7819, 0.5)
