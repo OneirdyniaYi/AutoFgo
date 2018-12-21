@@ -348,7 +348,7 @@ class Fgo(object):
         c = ['blue', 'red', 'blue', 'red', 'red']
         for i in range(5):
             ax.scatter(x[i], y[i], z[i], color=c[i])
-        plt.show()
+        # plt.show()
         plt.savefig('./data/tmp.jpg')
 
     def _choose_card(self):
@@ -358,7 +358,7 @@ class Fgo(object):
                                               0.5588+ix*0.2015, 0.8324))).mean(axis=(0, 1)) for ix in range(-2, 3)]
         # for x in RGBs:
         #     print(x)
-        self._plot3d(RGBs)
+        # self._plot3d(RGBs)
         nearest3RGB = [None, None, None]
         min_sigma = 1e10
         for j in range(5):
@@ -370,8 +370,8 @@ class Fgo(object):
                     min_sigma = now
                     nearest3RGB = cards
         # logging.info('Choose card: {}, Min var(RGB)={}.'.format(nearest3RGB, min_sigma))
-        print(nearest3RGB)
-        return nearest3RGB
+        # print(nearest3RGB)
+        return tuple(nearest3RGB)
 
     def _choose_card_test(self):
         # Use hash algrithom to compare Hanming distanse of images.
@@ -579,7 +579,7 @@ class Fgo(object):
 
     def clear_data(self):
         files = os.listdir('./data')
-        ignore = ('atk_ico.jpg', 'loading.jpg', 'INIT_POS')
+        ignore = ['atk_ico.jpg', 'loading.jpg', 'INIT_POS']
         for x in self.img.keys():
             ignore.append('{}.jpg'.format(x))
         for x in files:
