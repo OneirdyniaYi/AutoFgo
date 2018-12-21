@@ -3,7 +3,7 @@
 import os
 import win32api
 import win32con
-from PIL import ImageGrab
+from PIL import ImageGrab, Image
 import time
 from config_ver3 import *
 import logging
@@ -146,12 +146,21 @@ class Fgo(object):
             'nero': None,
             'fufu': None
         }
+        self._load_last_img()
 
-    def _save_img(self, name):
+    def _load_last_img(self):
+        root = './data/'
+        for name in self.img.keys():
+            fp = root + name + '.jpg'
+            if os.path.exists(fp):
+                self.img[name] = Image.open(fp)
+            else:
+                logging.warn('File {}.jpg not found.'.format(name))
+
+    def _save_img(self, name, save_file=True):
         if DEBUG:
-            self.img[name] = self.pic_shot_float(self.area_pos[name], name)
-        else:
-            self.img[name] = self.pic_shot_float(self.area_pos[name])
+            save_file = True
+        self.img[name] = self.pic_shot_float(self.area_pos[name], name=(name if save_file else None))
         return self.img[name]
 
     def getImg(self, name):
@@ -226,6 +235,16 @@ class Fgo(object):
             print('\nError type: ', e)
             print('>>> Mail sent failed. Maybe there are something wrong.')
 
+    def _mission_start(self):
+        # postion of `mission start` tag
+        start_y = 0.9398
+        start_x = 0.9281
+        self.click_act(start_x, start_y, 1)
+        if Choose_item:
+            self.click_act(0.5, 0.2866, 0.5)
+            self.click_act(0.6478, 0.7819, 0.5)
+            # self.click_act(0.6469, 0.9131, 0.5)
+
     def enter_battle(self, supNo=8):
         # [init by yourself] put the tag of battle at the top of screen.
         # postion of support servant tag.
@@ -238,25 +257,15 @@ class Fgo(object):
         self.click_act(0.0729+0.0527*supNo, 0.1796, 0.8)
         self.click_act(sup_tag_x, sup_tag_y, 1)
 
-        # postion of `mission start` tag
-        start_y = 0.9398
-        start_x = 0.9281
+
         if not self.img['StartMission']:
             self._save_img('StartMission')
-            self.click_act(start_x, start_y, 1)
-            if Choose_item:
-                self.click_act(0.5, 0.2866, 0.5)
-                self.click_act(0.6478, 0.7819, 0.5)
-                # self.click_act(0.6469, 0.9131, 0.5)
+            self._mission_start()
         else:
             time1 = time.time()
             while 1:
                 if self.getImg('StartMission') == self.img['StartMission']:
-                    self.click_act(start_x, start_y, 1)
-                    if Choose_item:
-                        self.click_act(0.5, 0.2866, 0.5)
-                        self.click_act(0.6478, 0.7819, 0.5)
-                        # self.click_act(0.6469, 0.9131, 1)
+                    self._mission_start()
                     return 0
 
                 elif time.time() - time1 > 10:
@@ -374,6 +383,10 @@ class Fgo(object):
         raise RuntimeError('Connection timeout in loading.')
 
     def _react_change(self, name):
+        '''
+        Define functions to react each kinds of changes during a turn.
+        function foramt: `def name():` means a function when self.img['name'] was detected.
+        '''
         def nero():
             if Nero_MAX:
                 self.click_act(0.3485, 0.7947, 0.5)
@@ -409,7 +422,6 @@ class Fgo(object):
             'fufu': fufu,
             'menu': menu
         }
-
         if self.getImg(name) == self.img[name]:
             return react_func[name]()
         else:
@@ -459,7 +471,7 @@ class Fgo(object):
             self.enter_battle(SUPPORT)
             # wait for going into loading page:
             self.diff_atk = self.wait_loading()
-        else:
+        elif not self.img['AtkIcon']:
             self._save_img('AtkIcon')
 
         for i in range(50):
@@ -516,12 +528,13 @@ class Fgo(object):
 
         if Nero_MAX:
             self.click_act(0.7314, 0.8427, 0.8)
-            self._save_img('nero')
+            self._save_img('nero', False)
             self.click_act(0.3485, 0.7947, 0.5)
 
     def run(self):
         beg = time.time()
-        self.save_AP_recover_pic()
+        if not self.img['AP_recover']:
+            self.save_AP_recover_pic()
         j = 0
         while j<EPOCH:
             print(
