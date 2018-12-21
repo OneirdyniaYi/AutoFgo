@@ -1,18 +1,23 @@
 # coding: utf-8
 # author: Why
-import os
-import win32api
-import win32con
-from PIL import ImageGrab, Image
-import time
-from config_ver3 import *
-import logging
-from email.header import Header
-import smtplib
-from email.mime.multipart import MIMEMultipart, MIMEBase
-from email.mime.text import MIMEText
-from email import encoders
 import argparse
+import logging
+import os
+import smtplib
+import time
+from email import encoders
+from email.header import Header
+from email.mime.multipart import MIMEBase, MIMEMultipart
+from email.mime.text import MIMEText
+
+import numpy as np
+import win32con
+from PIL import Image, ImageGrab
+
+import win32api
+from config_ver3 import *
+from utils import compare_img_new, dHash, cmpHash
+
 # ===== Config: =====
 CURRENT_EPOCH = 0
 PRE_BREAK_TIME = CLICK_BREAK_TIME
@@ -21,6 +26,8 @@ Args.add_argument('--epoch', '-e', type=int, help='Num of running battles.')
 Args.add_argument('--support', '-s', type=int, help='ID of support servent.')
 Args.add_argument('--keep', '-k', action='store_true',
                   help='To keep the window-position same as the last time.')
+Args.add_argument('--fromFile', '-f', action='store_true',
+                  help='Load self.img from files. You should use this mode with `--keep` option.')
 Args.add_argument('--debug', '-d', action='store_true',
                   help='Enter DEBUG mode.')
 Args.add_argument('--ContinueRun', '-c', action='store_true',
@@ -146,7 +153,8 @@ class Fgo(object):
             'nero': None,
             'fufu': None
         }
-        self._load_last_img()
+        if OPT.keep and OPT.fromFile:
+            self._load_last_img()
 
     def _load_last_img(self):
         root = './data/'
@@ -160,7 +168,8 @@ class Fgo(object):
     def _save_img(self, name, save_file=True):
         if DEBUG:
             save_file = True
-        self.img[name] = self.pic_shot_float(self.area_pos[name], name=(name if save_file else None))
+        self.img[name] = self.pic_shot_float(
+            self.area_pos[name], name=(name if save_file else None))
         return self.img[name]
 
     def getImg(self, name):
@@ -257,7 +266,6 @@ class Fgo(object):
         self.click_act(0.0729+0.0527*supNo, 0.1796, 0.8)
         self.click_act(sup_tag_x, sup_tag_y, 1)
 
-
         if not self.img['StartMission']:
             self._save_img('StartMission')
             self._mission_start()
@@ -309,14 +317,14 @@ class Fgo(object):
         # position of skills:
         logging.info(
             '<E{}/{}> - Now using skills...'.format(CURRENT_EPOCH, EPOCH))
-        
+
         # snap = 0.0734
         if turn == 1:
             for i in USED_SKILL:
                 self._use_one_skill(i)
             if Yili:
                 # 小伊丽的三技能...
-               self._use_one_skill(6)
+                self._use_one_skill(6)
             self.img['skills'] = self.get_skill_img()
         else:
             now_skill_img = self.get_skill_img()
@@ -329,16 +337,76 @@ class Fgo(object):
                     self._use_one_skill(6)
                 self.img['skills'] = self.get_skill_img()
 
+    def _plot3d(self, RGBs):
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+        fig = plt.figure()
+        ax = Axes3D(fig)
+        x = [x[0] for x in RGBs]
+        y = [x[1] for x in RGBs]
+        z = [x[2] for x in RGBs]
+        c = ['blue', 'red', 'blue', 'red', 'red']
+        for i in range(5):
+            ax.scatter(x[i], y[i], z[i], color=c[i])
+        plt.show()
+        plt.savefig('./data/tmp.jpg')
+
+    def _choose_card(self):
+        # normal atk card position:
+        # for `ix` in range(-2, 3), card in No 1~5, get the screenshot for each card and calculate the mean of RGB values.
+        RGBs = [np.array(self.pic_shot_float((0.4411+ix*0.2015, 0.7333,
+                                              0.5588+ix*0.2015, 0.8324))).mean(axis=(0, 1)) for ix in range(-2, 3)]
+        # for x in RGBs:
+        #     print(x)
+        self._plot3d(RGBs)
+        nearest3RGB = [None, None, None]
+        min_sigma = 1e10
+        for j in range(5):
+            for i in range(j):
+                cards = set(range(5)) - {i, j}
+                now = np.array([RGBs[x] for x in cards]).var(axis=0).sum()
+                print('> {}: Var: {}'.format(cards, now))
+                if now < min_sigma:
+                    min_sigma = now
+                    nearest3RGB = cards
+        # logging.info('Choose card: {}, Min var(RGB)={}.'.format(nearest3RGB, min_sigma))
+        print(nearest3RGB)
+        return nearest3RGB
+
+    def _choose_card_test(self):
+        # Use hash algrithom to compare Hanming distanse of images.
+        beg = time.time()
+        pics = [self.pic_shot_float((0.4411+ix*0.2015, 0.7333,
+                                              0.5588+ix*0.2015, 0.8324)) for ix in range(-2, 3)]
+        # hashs = [dHash(x) for x in pics]
+        dis = np.zeros((5, 5))
+        for j in range(5):
+            for i in range(j):
+                # dis[i][j] = cmpHash(hashs[i], hashs[j])
+                dis[i][j] = compare_img_new(pics[i], pics[j], 0)
+                # dis[j][i] = compare_img_new(pics[i], pics[j], 0)
+        min_d = 100
+        res = [1, 1, 1]
+        for j in range(5):
+            for i in range(j):
+                x = list(set(range(5)) - {i, j})
+                sum_d = dis[x[0]][x[1]] + dis[x[0]][x[2]] + dis[x[1]][x[2]]
+                if sum_d < min_d:
+                    min_d = sum_d
+                    res = list(set(range(5)) - {i, j})
+        print(dis, res, min_d, time.time() - beg)
+        return res
+
     def attack(self):
         logging.info(
             '<E{}/{}> - Now start attacking....'.format(CURRENT_EPOCH, EPOCH))
         # click attack icon:
         self.click_act(0.8823, 0.8444, 1)
         # use normal atk card:
-        # normal atk card position:
         atk_card_x = [0.1003+0.2007*x for x in range(5)]
-        for i in range(5):
-            self.click_act(atk_card_x[i], 0.7019, ATK_SLEEP_TIME)
+        nearest3ix = self._choose_card()
+        for i in range(3):
+            self.click_act(atk_card_x[nearest3ix[i]], 0.7019, ATK_SLEEP_TIME)
             if i == 0 and USED_ULTIMATE:
                 # logging.info('>>> Using Utimate skills...')
                 time.sleep(0.2)
@@ -346,7 +414,7 @@ class Fgo(object):
                 for j in USED_ULTIMATE:
                     self.click_act(ult_x[j], 0.2833, 0.1)
         # To avoid `Can't use card` status:
-        for i in range(3):
+        for i in range(5):
             self.click_act(atk_card_x[i], 0.7019, 0.1)
         logging.info(
             '<E{}/{}> - ATK Card using over.'.format(CURRENT_EPOCH, EPOCH))
@@ -511,8 +579,11 @@ class Fgo(object):
 
     def clear_data(self):
         files = os.listdir('./data')
+        ignore = ('atk_ico.jpg', 'loading.jpg', 'INIT_POS')
+        for x in self.img.keys():
+            ignore.append('{}.jpg'.format(x))
         for x in files:
-            if x in ('atk_ico.jpg', 'loading.jpg', 'INIT_POS'):
+            if x in ignore:
                 continue
             else:
                 os.remove('./data/{}'.format(x))
@@ -536,14 +607,14 @@ class Fgo(object):
         if not self.img['AP_recover']:
             self.save_AP_recover_pic()
         j = 0
-        while j<EPOCH:
+        while j < EPOCH:
             print(
                 '\n -----<< EPOCH{} START >>-----'.format(j+1))
             global CURRENT_EPOCH
             CURRENT_EPOCH += 1
             self.one_battle()
             time.sleep(0.5)
-            j+=1
+            j += 1
         end = time.time()
         logging.info('Total time: {:.1f}(min), <{:.1f}(min) on avarage.>'.format(
             (end-beg)/60, (end-beg)/(60*EPOCH)))
@@ -559,5 +630,7 @@ if __name__ == '__main__':
         fgo.one_battle(go_on=True)
     elif OPT.locate:
         fgo.monitor_cursor_pos()
+    elif OPT.debug:
+        fgo._choose_card()
     else:
         fgo.run()
