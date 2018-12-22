@@ -7,7 +7,15 @@ Yili = False        # 剑龙娘三技能：需要满AP使用
 DEBUG = False       # type: bool
 
 # ======<Important>======= #
-# num 0~8: [all, saber, archer, lancer, rider, caster, assassin, berserker, special]
+# 0. all
+# 1. saber
+# 2. archer
+# 3. lancer
+# 4. rider
+# 5. caster
+# 6. assassin
+# 7. berserker
+# 8. special
 SUPPORT = 7     # default berserker := 7
 EPOCH = 6  # num of battles you want to run (type: int)
 
@@ -16,7 +24,6 @@ ONE_APPLE_BATTLE = 3    # all AP // one battle AP cost. (type: int)
 
 # ======<User Setting>======= #
 FULL_SCREEN = False  # type: bool
-ATK_BEHIND_FIRST = False
 
 # ultimate skill list: (type: tuple, 0~2), set false to disable.
 USED_ULTIMATE = (0, 1, 2,)

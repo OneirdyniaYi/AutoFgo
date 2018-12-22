@@ -24,6 +24,7 @@ PRE_BREAK_TIME = CLICK_BREAK_TIME
 Args = argparse.ArgumentParser()
 Args.add_argument('--epoch', '-e', type=int, help='Num of running battles.')
 Args.add_argument('--support', '-s', type=int, help='ID of support servent.')
+Args.add_argument('--order', '-o', type=int, choices=range(-3, 4), default=0, help='Attacking orders. `n` for attacking `n`th enemy first; `-n` for attacking `n`th enemy first and others in reverse order; 0 for ignoring settings.')
 Args.add_argument('--keep', '-k', action='store_true',
                   help='To keep the window-position same as the last time.')
 Args.add_argument('--fromFile', '-f', action='store_true',
@@ -498,12 +499,16 @@ class Fgo(object):
         # update saved atk icon:
         if not self.img['AtkIcon']:
             self._save_img('AtkIcon')
-
-        if ATK_BEHIND_FIRST:
-            self.click_act(0.3010, 0.0602, 0.1)
-            self.click_act(0.1010, 0.0593, 0.1)
         if USE_SKILL:
             self.use_skill(turn)
+        # reset the attack order:
+        if OPT.order:
+            enemy_x = (0.1010, 0.3010, 0.4901)
+            first_ix = np.abs(OPT.order) - 1
+            flag = 1 if OPT.order > 0 else -1
+            for i in [y for y in range(3) if y!=first_ix][::flag]:
+                self.click_act(enemy_x[i], 0.0602, 0.1)
+            self.click_act(enemy_x[first_ix], 0.0602, 0.1)
         self.attack()
         time.sleep(1.5)
 
@@ -630,6 +635,6 @@ if __name__ == '__main__':
     elif OPT.locate:
         fgo.monitor_cursor_pos()
     elif OPT.debug:
-        fgo._choose_card()
+        pass
     else:
         fgo.run()
