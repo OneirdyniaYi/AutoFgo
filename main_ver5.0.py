@@ -3,6 +3,7 @@
 import argparse
 import logging
 import os
+import sys
 import smtplib
 import time
 from email import encoders
@@ -11,12 +12,16 @@ from email.mime.multipart import MIMEBase, MIMEMultipart
 from email.mime.text import MIMEText
 
 import numpy as np
-import win32con
-from PIL import Image, ImageGrab
+from PIL import Image
+from config import *
 
-import win32api
-from config_ver3 import *
-from utils import compare_img_new, dHash, cmpHash
+SYSTEM = sys.platform
+
+if SYSTEM == 'linux':
+    print('>>> Current system: Linux')
+    from utils_linux import *
+else:
+    from utils_win import *
 
 # ===== Config: =====
 CURRENT_EPOCH = 0
@@ -48,7 +53,7 @@ SEND_MAIL = False if EPOCH < 5 or DEBUG else SEND_MAIL
 
 def get_log():
     logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s - %(levelname)s]: %(message)s',
-                        datefmt='%H:%M:%S', filename='fgo.LOG', filemode='w')
+                        datefmt='%H:%M:%S', filename='./data/fgo.LOG', filemode='w')
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
     if DEBUG:
@@ -58,34 +63,12 @@ def get_log():
     logging.getLogger().addHandler(console)
 
 
-class Cursor(object):
-    def __init__(self, init_pos):
-        # init_pos： type:tuple, set `False` to skip initing position.
-        if init_pos != False and len(init_pos) == 2:
-            self.move_to(init_pos)
-
-    def move_to(self, pos):
-        win32api.SetCursorPos(pos)
-
-    def get_pos(self):
-        return win32api.GetCursorPos()
-
-    def click(self):
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
-
-    def right_click(self):
-        win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0)
-        win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0)
-
-
 class Fgo(object):
     def __init__(self, full_screen=True, sleep=True):
         # [init by yourself] put cursor at the down-right position of the game window.
         self.c = Cursor(init_pos=False)
         if full_screen:
-            self.height = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
-            self.width = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
+            self.width, self.height = self.c.get_screen_wh()
             self.scr_pos1 = (0, 0)
             self.scr_pos2 = (self.width, self.height)
             for x in range(5):
@@ -195,24 +178,25 @@ class Fgo(object):
         # reurn the real position on the screen.
         return int(self.scr_pos1[0]+self.width*float_x), int(self.scr_pos1[1]+self.height*float_y)
 
-    def click_act(self, float_x, float_y, sleep_time, click=True, info=True):
+    def click_act(self, float_x, float_y, sleep_time, click=True):
         pos = self._set(float_x, float_y)
-        self.c.move_to(pos)
-        if click:
-            try:
-                self.c.click()
-            except:
-                logging.warning(
-                    'Screen was locked. You can ignore this message.')
-                pass
-        # if not DEBUG and info:
-            # logging.info('<E{}/{}> - Simulate cursor click at {}'.format(CURRENT_EPOCH, EPOCH, (float_x, float_y)))
+        if SYSTEM != 'linux':
+            self.c.move_to(pos)
+            if click:
+                try:
+                    self.c.click()
+                except Exception:
+                    logging.warning(
+                        'Screen was locked. You can ignore this message.')
+                    pass
+        elif click and SYSTEM == 'linux':
+            self.c.click(pos)
         time.sleep(sleep_time)
 
     def send_mail(self, status):
         # status: 'err' or 'done'
         self.pic_shot_float((0, 0, 1, 1), 'final_shot')
-        with open('fgo.LOG', 'r') as f:
+        with open('./data/fgo.LOG', 'r') as f:
             res = f.readlines()
             res = [x.replace('<', '&lt;') for x in res]
             res = [x.replace('>', '&gt;') for x in res]
@@ -268,6 +252,7 @@ class Fgo(object):
 
         if not self.img['StartMission']:
             self._save_img('StartMission')
+            time.sleep(START_MISSION_EXTRA_SLEEP)
             self._mission_start()
         else:
             time1 = time.time()
@@ -299,9 +284,9 @@ class Fgo(object):
         flag = 1
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]    # ski_y = 0.8009
-        self.click_act(ski_x[skill_no], 0.8009, 0.1)
-        self.click_act(0.5, 0.5, 0.1)
-        self.click_act(0.0521, 0.4259, 0.2)
+        self.click_act(ski_x[skill_no], 0.8009, SKILL_SLEEP1)
+        self.click_act(0.5, 0.5, SKILL_SLEEP2)
+        self.click_act(0.0521, 0.4259, SKILL_SLEEP3)
         # To see if skill is really used.
         beg = time.time()
         while self.getImg('AtkIcon') != self.img['AtkIcon']:
@@ -373,30 +358,6 @@ class Fgo(object):
         # print(nearest3RGB)
         return tuple(nearest3RGB)
 
-    def _choose_card_test(self):
-        # Use hash algrithom to compare Hanming distanse of images.
-        beg = time.time()
-        pics = [self.pic_shot_float((0.4411+ix*0.2015, 0.7333,
-                                              0.5588+ix*0.2015, 0.8324)) for ix in range(-2, 3)]
-        # hashs = [dHash(x) for x in pics]
-        dis = np.zeros((5, 5))
-        for j in range(5):
-            for i in range(j):
-                # dis[i][j] = cmpHash(hashs[i], hashs[j])
-                dis[i][j] = compare_img_new(pics[i], pics[j], 0)
-                # dis[j][i] = compare_img_new(pics[i], pics[j], 0)
-        min_d = 100
-        res = [1, 1, 1]
-        for j in range(5):
-            for i in range(j):
-                x = list(set(range(5)) - {i, j})
-                sum_d = dis[x[0]][x[1]] + dis[x[0]][x[2]] + dis[x[1]][x[2]]
-                if sum_d < min_d:
-                    min_d = sum_d
-                    res = list(set(range(5)) - {i, j})
-        print(dis, res, min_d, time.time() - beg)
-        return res
-
     def attack(self):
         logging.info(
             '<E{}/{}> - Now start attacking....'.format(CURRENT_EPOCH, EPOCH))
@@ -424,13 +385,13 @@ class Fgo(object):
         # error: 关闭屏幕缩放！关闭屏幕缩放！
         x1, y1 = self._set(float_x1, float_y1)
         x2, y2 = self._set(float_x2, float_y2)
-        img = ImageGrab.grab(bbox=(x1, y1, x2, y2))
+        img = ScreenShot(x1, y1, x2, y2)
         if name:
             img.save('./data/{}.jpg'.format(name))
         return img
 
     def wait_loading(self):
-        time.sleep(3)
+        time.sleep(LOADING_WAIT_TIME)
         # loading_img = self.getImg('AtkIcon')
         logging.info('<LOAD> - Monitoring at area1, Now loading...')
         if not self.img['fufu']:
@@ -531,7 +492,7 @@ class Fgo(object):
                 elif res:   # `battle_over` or `next_turn`
                     return res
             # click to skip something
-            self.click_act(0.7771, 0.9627, CLICK_BREAK_TIME, info=False)
+            self.click_act(0.7771, 0.9627, CLICK_BREAK_TIME)
 
             if not j:
                 logging.info(

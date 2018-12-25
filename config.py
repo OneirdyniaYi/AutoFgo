@@ -37,10 +37,6 @@ USE_SKILL = True
 USED_SKILL = (0, 1, 2, 3, 4, 5, 6, 7, 8)
 # USED_SKILL = (0, 1, 3, 4, 5, 6, 7, 8)
 
-# time to sleep after clicking atk cards:
-# you'd better keep the default value.(type: float)
-ATK_SLEEP_TIME = 0.1
-
 # click to skip something:
 CLICK_BREAK_TIME = 1
 
@@ -67,17 +63,3 @@ SMTP_SERVER = 'smtp.qq.com'
 
 # usable SMTP port, please check at your email settings.(type: int)
 SMTP_PORT = 465
-
-# ======<DON'T EDIT>======= #
-# dont't edit the following code unless you know what you are doing.
-# run config.py to find if your screen settings are well-worked.
-from PIL import ImageGrab
-
-
-def test():
-    img = ImageGrab.grab()
-    img.save('FullScreenGrab.jpg')
-
-
-if __name__ == '__main__':
-    test()
