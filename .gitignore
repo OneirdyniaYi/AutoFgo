@@ -4,6 +4,7 @@ fgo_img
 *.txt
 *.LOG
 *.bak*
+test.py
 *.pyc
 __pycache__
 .ipynb_checkpoints

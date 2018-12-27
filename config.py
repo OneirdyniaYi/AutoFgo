@@ -1,10 +1,12 @@
 # coding: utf-8
 # Author: Why
 # ======<Special Mode>======= #
+DEBUG = False       # type: bool
+CONTINUE_RUN = False    # for debug
 Nero_MAX = False     # 尼禄祭！误触区域内有高难本
 Choose_item = False  # 万圣节！开始战斗前要选道具
 Yili = False        # 剑龙娘三技能：需要满AP使用
-DEBUG = False       # type: bool
+SAVE_IMG = True    # save sll imgs for next runnning.
 
 # ======<Important>======= #
 # 0. all
@@ -35,7 +37,7 @@ USE_SKILL = True
 # skills list: (type: tuple, start from 0)
 # reset the order of numbers to change skill orders.
 USED_SKILL = (0, 1, 2, 3, 4, 5, 6, 7, 8)
-# USED_SKILL = (0, 1, 3, 4, 5, 6, 7, 8)
+# USED_SKILL = s(0, )
 
 # click to skip something:
 CLICK_BREAK_TIME = 1

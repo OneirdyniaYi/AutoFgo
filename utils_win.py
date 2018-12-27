@@ -6,15 +6,22 @@ from PIL import ImageGrab
 
 # Global Varables:
 LOADING_WAIT_TIME = 3
-START_MISSION_EXTRA_SLEEP = 0
 ATK_SLEEP_TIME = 0.1
 SKILL_SLEEP1 = 0.1
 SKILL_SLEEP2 = 0.1
 SKILL_SLEEP3 = 0.2
 ULTIMATE_SLEEP = 0.2
+CLICK_BAR_SLEEP = 0.1
+EXTRA_SLEEP_UNIT = 0
+WAIT_LOADING_SLEEP = 1      # sanp between loadings
 
 
-def ScreenShot(x1, y1, x2, y2):
+# in Windows, 2 kinds of grab method is the same.
+def grab_acc(x1, y1, x2, y2):
+    return ImageGrab.grab(bbox=(x1, y1, x2, y2))
+
+
+def grab_blur(x1, y1, x2, y2):
     return ImageGrab.grab(bbox=(x1, y1, x2, y2))
 
 
