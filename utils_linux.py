@@ -29,7 +29,7 @@ WAIT_LOADING_SLEEP = 1      # sanp between loadings
 # not stable but quick, used during battle.
 
 
-def grab_blur(x1, y1, x2, y2, to_PIL=False):
+def ScreenShot(x1, y1, x2, y2, to_PIL=False):
     import autopy
     # print(x1, y1, x2, y2, 'size:', x2-x1, y2-y1)
     im = autopy.bitmap.capture_screen(((x1, y1), (x2-x1, y2-y1)))

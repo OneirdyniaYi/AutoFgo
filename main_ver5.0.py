@@ -627,7 +627,7 @@ if __name__ == '__main__':
     if DEBUG:
         # fgo.wait_loading()
         
-
+        fgo.debug_grab()
         # fgo._choose_card()
         # img = fgo.grab(fgo.area_pos['fufu'])
         pass
