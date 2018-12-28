@@ -7,7 +7,6 @@ import numpy as np
 
 # Global Varables:
 ROOT = '/run/media/why/OS/WHY/Why酱の工具箱/fgo/'
-LOADING_WAIT_TIME = 5       # time sleep before loading.
 ATK_SLEEP_TIME = 0.2
 SKILL_SLEEP1 = 0.2
 SKILL_SLEEP2 = 0.2
@@ -15,7 +14,8 @@ SKILL_SLEEP3 = 0.25
 ULTIMATE_SLEEP = 0.2
 CLICK_BAR_SLEEP = 0.2
 EXTRA_SLEEP_UNIT = 0.05      # defalut 0.1
-WAIT_LOADING_SLEEP = 1      # sanp between loadings
+# LOADING_WAIT_TIME = 5       # time sleep before loading.
+# WAIT_LOADING_SLEEP = 1      # sanp between loadings
 
 # LOG:
 # - pyscreenshot: too slow
@@ -29,15 +29,19 @@ WAIT_LOADING_SLEEP = 1      # sanp between loadings
 # not stable but quick, used during battle.
 
 
-def ScreenShot(x1, y1, x2, y2, to_PIL=False):
+def ScreenShot(x1, y1, x2, y2, to_PIL=False, fname=None):
     import autopy
     # print(x1, y1, x2, y2, 'size:', x2-x1, y2-y1)
     im = autopy.bitmap.capture_screen(((x1, y1), (x2-x1, y2-y1)))
+    if fname:
+        im.save(ROOT + 'data/{}.png'.format(fname))
     if to_PIL:
+        # return PIL_img, bitmap_img
         im.save(ROOT + 'data/tmp.png')
-        return Image.open(ROOT + 'data/tmp.png').convert('RGB')
+        return Image.open(ROOT + 'data/tmp.png').convert('RGB'), im
     else:
         return im
+
 
 # def ScreenShot(x1, y1, x2, y2):
 #     from Xlib import display, X
@@ -72,10 +76,10 @@ def ScreenShot(x1, y1, x2, y2, to_PIL=False):
 # stable, used out of battle.
 
 
-def grab_acc(x1, y1, x2, y2):
-    import pyautogui
-    # button7location = pyautogui.locateOnScreen('./debug/ori.png')
-    return pyautogui.screenshot(region=(x1, y1, x2-x1, y2-y1))
+# def grab_acc(x1, y1, x2, y2):
+#     import pyautogui
+#     # button7location = pyautogui.locateOnScreen('./debug/ori.png')
+#     return pyautogui.screenshot(region=(x1, y1, x2-x1, y2-y1))
 
 
 class Cursor(object):
@@ -98,10 +102,11 @@ class Cursor(object):
         return self.c.screen_size()
 
 
-def get_wallpaper_RGB():
-    pic = ScreenShot(0, 0, 10, 10)
-    print(np.array(pic, dtype=np.uint8).mean(axis=(0, 1)))
+# def get_wallpaper_RGB():
+#     pic = ScreenShot(0, 0, 10, 10)
+#     print(np.array(pic, dtype=np.uint8).mean(axis=(0, 1)))
 
 
 if __name__ == '__main__':
-    get_wallpaper_RGB()
+    # get_wallpaper_RGB()
+    pass
