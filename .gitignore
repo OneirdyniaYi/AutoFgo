@@ -1,6 +1,5 @@
 fgo_img
 *.ipynb
-*.log
 *.txt
 *.LOG
 *.bak*
@@ -9,7 +8,9 @@ test.py
 __pycache__
 .ipynb_checkpoints
 .vscode
+tmp.png
 *.jpg
 INIT_POS
 bak
 debug
+data

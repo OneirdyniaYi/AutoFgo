@@ -5,6 +5,7 @@ import win32con
 from PIL import ImageGrab
 
 # Global Varables:
+ROOT = '/run/media/why/OS/WHY/Why酱の工具箱/fgo/'
 LOADING_WAIT_TIME = 3
 ATK_SLEEP_TIME = 0.1
 SKILL_SLEEP1 = 0.1
@@ -17,12 +18,12 @@ WAIT_LOADING_SLEEP = 1      # sanp between loadings
 
 
 # in Windows, 2 kinds of grab method is the same.
-def grab_acc(x1, y1, x2, y2):
-    return ImageGrab.grab(bbox=(x1, y1, x2, y2))
-
-
-def grab_blur(x1, y1, x2, y2):
-    return ImageGrab.grab(bbox=(x1, y1, x2, y2))
+# THese strange settings is for match linux API.
+def ScreenShot(x1, y1, x2, y2, to_PIL=False, fname=None):
+    im = ImageGrab.grab(bbox=(x1, y1, x2, y2))
+    if fname:
+        im.save(ROOT + 'data/{}.png'.format(fname))
+    return (im, im) if to_PIL else im
 
 
 class Cursor(object):

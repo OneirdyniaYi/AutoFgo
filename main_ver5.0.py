@@ -33,13 +33,15 @@ Args.add_argument('--order', '-o', type=int, choices=range(-3, 4), default=0,
                   help='Attacking orders. `n` for attacking `n`th enemy first; `-n` for attacking `n`th enemy first and others in reverse order; 0 for ignoring settings.')
 Args.add_argument('--keep', '-k', action='store_true',
                   help='To keep the window-position same as the last time.')
-Args.add_argument('--fromFile', '-f', action='store_true',
-                  help='Load self.img from files. You should use this mode with `--keep` option.')
+Args.add_argument('--LastPos', '-l', action='store_true',
+                  help='To see the window-position last time.')
+# Args.add_argument('--fromFile', '-f', action='store_true',
+#                   help='Load self.img from files. You should use this mode with `--keep` option.')
 Args.add_argument('--debug', '-d', action='store_true',
                   help='Enter DEBUG mode.')
 Args.add_argument('--ContinueRun', '-c', action='store_true',
                   help='Continue running in a battle.')
-Args.add_argument('--locate', '-l', action='store_true',
+Args.add_argument('--locate', '-L', action='store_true',
                   help='Monitor cursor\'s  position.')
 OPT = Args.parse_args()
 
@@ -49,7 +51,7 @@ EPOCH = OPT.epoch if OPT.epoch else EPOCH
 SUPPORT = OPT.support if OPT.support else SUPPORT
 CONTINUE_RUN = True if OPT.ContinueRun else CONTINUE_RUN
 SEND_MAIL = False if EPOCH < 5 or DEBUG else SEND_MAIL
-print('>>> Attention: You are in DEBUG Mode now!' if DEBUG else '')
+print('>>> Attention: You are in DEBUG Mode!' if DEBUG else '')
 # ===== Main Code: =====
 
 
@@ -61,8 +63,8 @@ def get_log():
                         datefmt=date_fmt_file, filename=ROOT + 'data/fgo.LOG', filemode='w')
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
-    if DEBUG:
-        console.setLevel(logging.DEBUG)
+    # if DEBUG:
+    #     console.setLevel(logging.DEBUG)
     console.setFormatter(logging.Formatter(fmt, datefmt=date_fmt_file))
     logging.getLogger().addHandler(console)
 
@@ -87,12 +89,17 @@ class Fgo(object):
                     'Start in %d s, Please enter FULL SCREEN.' % (5-x))
                 time.sleep(1)
         else:
-            if OPT.keep:
+            if OPT.keep or OPT.LastPos:
                 with open(ROOT + 'data/INIT_POS', 'r') as f:
                     res = f.readlines()
                 res = tuple([int(x) for x in res[0].split(' ')])
                 self.scr_pos1 = res[:2]
                 self.scr_pos2 = res[2:]
+                if OPT.LastPos:
+                    self.c.move_to(self.scr_pos1)
+                    time.sleep(0.5)
+                    self.c.move_to(self.scr_pos2)
+                    os._exit(0)
                 print('>>> Continue running keeping last position.')
             else:
                 while 1:
@@ -136,7 +143,7 @@ class Fgo(object):
             'AP_recover': (0.2511, 0.177, 0.2907, 0.2464),
             # 'support': (0.6257, 0.1558, 0.6803, 0.1997),
             'atk': (0.8708, 0.7556, 0.8979, 0.8009),
-            'fufu': (0.4167, 0.9260, 0.4427, 1)
+            'fufu': (0.4611, 0.9694, 0.4731, 0.9907)
         }
         self.img = {
             'menu': None,
@@ -150,8 +157,8 @@ class Fgo(object):
         # load sample imgs:
         self.LoadImg = {x: Image.open(
             ROOT + 'data/{}_sample.jpg'.format(x)) for x in self.area.keys()}
-        if not CONTINUE_RUN:
-            if self._monitor('menu', 3) == -1:
+        if not CONTINUE_RUN and not DEBUG:
+            if self._monitor('menu', 3, 0) == -1:
                 os._exit(0)
 
     def grab(self, float_pos, fname=None, to_PIL=False):
@@ -245,19 +252,19 @@ class Fgo(object):
         sup_tag_x = 0.4893
         sup_tag_y = 0.3944
         # click the center of battle tag.
-        self.click_act(0.7252, 0.2740, 1)
+        self.click_act(0.7252, 0.2740, 1.5)
         self.use_apple()
         # choose support servent class icon:
-        time.sleep(EXTRA_SLEEP_UNIT*5)
+        time.sleep(EXTRA_SLEEP_UNIT*10)
         self.click_act(0.0729+0.0527*supNo, 0.1796, 0.8)
         self.click_act(sup_tag_x, sup_tag_y, 1)
 
-        if self._monitor('StartMission', 10) == 1:
+        if self._monitor('StartMission', 10, 0.3) == 1:
             self._mission_start()
             return 0
         else:
             self.click_act(sup_tag_x, sup_tag_y, 1)
-            if not(self._similar(self.grab(self.area['StartMission']), self.img['StartMission'])):
+            if not(self._similar(self.grab(self.area['StartMission'], to_PIL=True)[0], self.img['StartMission'])):
                 logging.error('Can\'t get START_MISSION tag for 10s.')
                 self.send_mail('Error')
                 raise RuntimeError('Can\'t get START_MISSION tag for 10s')
@@ -355,41 +362,57 @@ class Fgo(object):
             self.click_act(atk_card_x[i], 0.7019, 0.1)
         info('ATK Card using over.')
 
-    def _similar(self, img1, img2):
+    def _similar(self, img1, img2, bound=30):
         # to find if 2 imgs(PIL jpg format) are very similar.
+        # - bound: if 2 imgs' distance in RGB < bound, return True. 
         c1 = np.array(img1).mean(axis=(0, 1))
         c2 = np.array(img2).mean(axis=(0, 1))
         d = np.linalg.norm(c1 - c2)
-        print('> Distance: {:.4f}'.format(d))
-        return True if np.linalg.norm(c1 - c2) < 30 else False
+        if DEBUG:
+            print('distance:', d)
+        # d +0.0001 to avoid that d == 0
+        return d+0.0001 if d < bound else False
 
-    def _monitor(self, name, max_time):
+    def _monitor(self, name, max_time, sleep, bound=30):
         '''
         used for waiting loading.
         name = `fufu` or `atk`
         When `self.img[name]` is similar to now_img, save now img_bitmap as new img and return.
+        Args:
+        ------
+        - name: choose from self.area.keys()
+        - max_time: maxtime to wait for.
+        - sleep: sleep time when use `_similar()` to judge. To avoid the situation: _similar(now, ori) == True but now != ori, because `now_img` is still in randering, they are similar but not the same.
+        - bound: if 2 imgs' RGB distance < bound, regard they are similar.
         '''
         beg = time.time()
         while 1:
             if not self.img[name]:
                 now, now_bit = self.grab(self.area[name], to_PIL=True)
-                if self._similar(self.LoadImg[name], now):
-                    self.img[name] = now_bit
-                    break
+                d = self._similar(self.LoadImg[name], now, bound)
+                if d:
+                    if sleep:
+                        time.sleep(sleep)
+                        self._monitor(name, 1.5, 0, bound)
+                    else:
+                        self.img[name] = now_bit
+                        # now_bit.save('./debug/{}.png'.format(name))
+                        logging.info('Got new img: {}, Distance: {:.4f}'.format(name, d))
+                    return 1
             elif self.grab(self.area[name], to_PIL=False)== self.img[name]:
-                break
+                logging.info('{} Detected, Status change.'.format(name))
+                return 1
             if time.time() - beg > max_time:
                 logging.error('{} running out of time: {}s'.format(name, max_time))
                 return -1
             time.sleep(0.1)
-        logging.info('Got new img: {}'.format(name))
-        return 1
 
     def wait_loading(self):
         logging.info('<LOAD> - Now loading...')
-        if self._monitor('fufu', 15) == -1:
-            os._exit(0)
-        if self._monitor('atk', 150) == -1:
+        if CURRENT_EPOCH == 1:
+            if self._monitor('fufu', 15, 0.5, 30) == -1:
+                os._exit(0)
+        if self._monitor('atk', 150, 0.5) == -1:
             os._exit(0)
         info('Finish loading, battle start.')
 
@@ -404,7 +427,7 @@ class Fgo(object):
 
         def fufu():
             global CLICK_BREAK_TIME
-            CLICK_BREAK_TIME = 3.5
+            CLICK_BREAK_TIME = 5
             info('Get loading page, end epoch{}.'.format(CURRENT_EPOCH))
             time.sleep(1)
             return 'CONTINUE'
@@ -474,7 +497,7 @@ class Fgo(object):
             self.wait_loading()
         # ContinueRun:
         elif not self.img['atk']:
-            if self._monitor('atk', 3) == -1:
+            if self._monitor('atk', 3, 0) == -1:
                 os._exit(0)
 
         for i in range(50):
@@ -509,14 +532,15 @@ class Fgo(object):
         print('>>> Saving AP_recover pic...')
         # choose AP bar:
         self.click_act(0.1896, 0.9611, 1)
-        if self._monitor('AP_recover', 3) == -1:
+        if self._monitor('AP_recover', 3, 0.2) == -1:
             os._exit(0)
         # click `exit`
         self.click_act(0.5, 0.8630, 0.5)
 
     def run(self):
         beg = time.time()
-        self.save_AP_recover_img()
+        if not self.img['AP_recover']:
+            self.save_AP_recover_img()
         for j in range(EPOCH):
             print(
                 '\n -----<< EPOCH{} START >>-----'.format(j+1))
@@ -549,10 +573,9 @@ if __name__ == '__main__':
     if DEBUG:
         # fgo.wait_loading()
         # fgo._choose_card()
-        ori = Image.open(ROOT + 'data/StartMission_sample.jpg')
-        # img, _ = fgo.grab((0, 0, 1, 1), to_PIL=True, fname = 'now_mi')
-        img, _ = fgo.grab(fgo.area['StartMission'],
-                          to_PIL=True, fname='now_mi')
+        ori = Image.open('./data/menu_sample.jpg')
+        # img, _ = fgo.grab((0, 0, 1, 1), to_PIL=True, fname = 'now_fufu')
+        img, _ = fgo.grab(fgo.area['menu'],to_PIL=True)
         fgo._similar(ori, img)
         pass
     elif OPT.locate:
