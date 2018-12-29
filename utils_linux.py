@@ -7,11 +7,11 @@ import numpy as np
 
 # Global Varables:
 ROOT = '/run/media/why/OS/WHY/Why酱の工具箱/fgo/'
-ATK_SLEEP_TIME = 0.2
-SKILL_SLEEP1 = 0.2
+ATK_SLEEP_TIME = 0.15
+ULTIMATE_SLEEP = 0.2
+SKILL_SLEEP1 = 0.15
 SKILL_SLEEP2 = 0.2
 SKILL_SLEEP3 = 0.25
-ULTIMATE_SLEEP = 0.2
 CLICK_BAR_SLEEP = 0.2
 EXTRA_SLEEP_UNIT = 0.05      # defalut 0.1
 # LOADING_WAIT_TIME = 5       # time sleep before loading.

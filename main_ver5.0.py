@@ -240,7 +240,8 @@ class Fgo(object):
 
     def _mission_start(self):
         # postion of `mission start` tag
-        self.click_act(0.9398, 0.9281, 1)
+        for _ in range(3):
+            self.click_act(0.9398, 0.9281, 1)
         if Choose_item:
             self.click_act(0.5, 0.2866, 0.5)
             self.click_act(0.6478, 0.7819, 0.5)
@@ -252,10 +253,10 @@ class Fgo(object):
         sup_tag_x = 0.4893
         sup_tag_y = 0.3944
         # click the center of battle tag.
-        self.click_act(0.7252, 0.2740, 1.5)
+        self.click_act(0.7252, 0.2740, 2)
         self.use_apple()
         # choose support servent class icon:
-        time.sleep(EXTRA_SLEEP_UNIT*10)
+        time.sleep(EXTRA_SLEEP_UNIT*4)
         self.click_act(0.0729+0.0527*supNo, 0.1796, 0.8)
         self.click_act(sup_tag_x, sup_tag_y, 1)
 
@@ -277,7 +278,7 @@ class Fgo(object):
         for i in USED_SKILL:
             skill_imgs[i] = self.grab(
                 (ski_x[i]-0.0138, ski_y-0.0222, ski_x[i]+0.0138, ski_y))
-            # skill_imgs[i].save(ROOT + 'data/{}.png'.format(i))
+            skill_imgs[i].save('./debug/{}.png'.format(i))
         return skill_imgs
 
     def _use_one_skill(self, skill_no):
@@ -288,11 +289,17 @@ class Fgo(object):
         self.click_act(0.0521, 0.4259, SKILL_SLEEP3)
         # To see if skill is really used.
         beg = time.time()
+        click_status = True
         while not(self.grab(self.area['atk']) == self.img['atk']):
-            if 10 > time.time() - beg > 8:
+            # to avoid clicking avator:
+            if click_status:
+                time.sleep(1)
+                self.click_act(0.0521, 0.4259, 0)
+                click_status = False
+            if 8 > time.time() - beg > 6:
                 logging.warning('Click avator wrongly,auto-fixed.')
-                self.click_act(0.0521, 0.4259, 0.2)
-            if time.time() - beg > 10:
+                self.click_act(0.0521, 0.4259, 0.5)
+            if time.time() - beg > 8:
                 return -1
         return 1
 
@@ -305,9 +312,10 @@ class Fgo(object):
                 self._use_one_skill(i)
             if Yili:
                 self._use_one_skill(6)
+            time.sleep(EXTRA_SLEEP_UNIT*2)
             self.img['skills'] = self.get_skill_img()
         else:
-            time.sleep(EXTRA_SLEEP_UNIT*3)
+            time.sleep(EXTRA_SLEEP_UNIT*2)
             now_skill_img = self.get_skill_img()
             if not(now_skill_img == self.img['skills']):
                 for i in USED_SKILL:
@@ -315,6 +323,7 @@ class Fgo(object):
                         self._use_one_skill(i)
                 if Yili:
                     self._use_one_skill(6)
+                time.sleep(EXTRA_SLEEP_UNIT*2)
                 self.img['skills'] = self.get_skill_img()
 
     def _choose_card(self):
@@ -345,11 +354,12 @@ class Fgo(object):
     def attack(self):
         info('Now start attacking....')
         # click attack icon:
-        time.sleep(EXTRA_SLEEP_UNIT*5)
+        # time.sleep(EXTRA_SLEEP_UNIT*5)
         self.click_act(0.8823, 0.8444, 1)
         # use normal atk card:
         atk_card_x = [0.1003+0.2007*x for x in range(5)]
         nearest3ix = self._choose_card()
+        time.sleep(EXTRA_SLEEP_UNIT*3)
         for i in range(3):
             self.click_act(atk_card_x[nearest3ix[i]], 0.7019, ATK_SLEEP_TIME)
             if i == 0 and USED_ULTIMATE:
@@ -358,8 +368,9 @@ class Fgo(object):
                 for j in USED_ULTIMATE:
                     self.click_act(ult_x[j], 0.2833, ULTIMATE_SLEEP)
         # To avoid `Can't use card` status:
-        for i in range(5):
-            self.click_act(atk_card_x[i], 0.7019, 0.1)
+        for _ in range(2):
+            for i in range(5):
+                self.click_act(atk_card_x[i], 0.7019, 0.2)
         info('ATK Card using over.')
 
     def _similar(self, img1, img2, bound=30):
@@ -427,7 +438,7 @@ class Fgo(object):
 
         def fufu():
             global CLICK_BREAK_TIME
-            CLICK_BREAK_TIME = 5
+            CLICK_BREAK_TIME = 3.5
             info('Get loading page, end epoch{}.'.format(CURRENT_EPOCH))
             time.sleep(1)
             return 'CONTINUE'
@@ -461,6 +472,7 @@ class Fgo(object):
                         (1, 0, 2), (2, 0, 1),
                         (2, 1, 0), (1, 2, 0),
                         (0, 2, 1))
+            # position: 0, 1, 2 from left to right.
             enemy_x = (0.1010, 0.3010, 0.4901)
             for ix in AtkOrder[OPT.order]:
                 self.click_act(enemy_x[ix], 0.0602, CLICK_BAR_SLEEP)
