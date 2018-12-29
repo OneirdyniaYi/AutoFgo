@@ -18,6 +18,7 @@ from config import *
 SYSTEM = sys.platform
 
 if SYSTEM == 'linux':
+    print('------------')
     print('>>> Current system: Linux')
     from utils_linux import *
 else:
@@ -31,12 +32,11 @@ Args.add_argument('--epoch', '-e', type=int, help='Num of running battles.')
 Args.add_argument('--support', '-s', type=int, help='ID of support servent.')
 Args.add_argument('--order', '-o', type=int, choices=range(-3, 4), default=0,
                   help='Attacking orders. `n` for attacking `n`th enemy first; `-n` for attacking `n`th enemy first and others in reverse order; 0 for ignoring settings.')
-Args.add_argument('--keep', '-k', action='store_true',
-                  help='To keep the window-position same as the last time.')
-Args.add_argument('--LastPos', '-l', action='store_true',
-                  help='To see the window-position last time.')
-# Args.add_argument('--fromFile', '-f', action='store_true',
-#                   help='Load self.img from files. You should use this mode with `--keep` option.')
+
+Args.add_argument('--keep', '-k', type=int,
+                  help='if 0: keep the window-position same as the last time; if n: load from file n')
+Args.add_argument('--CheckPos', '-p', action='store_true',
+                  help='To see the window-position, shoud be used with `--keep`.')
 Args.add_argument('--debug', '-d', action='store_true',
                   help='Enter DEBUG mode.')
 Args.add_argument('--ContinueRun', '-c', action='store_true',
@@ -44,15 +44,18 @@ Args.add_argument('--ContinueRun', '-c', action='store_true',
 Args.add_argument('--locate', '-L', action='store_true',
                   help='Monitor cursor\'s  position.')
 OPT = Args.parse_args()
-
-global DEBUG, EPOCH, SUPPORT, SEND_MAIL, CONTINUE_RUN
-DEBUG = OPT.debug if OPT.debug else DEBUG
-EPOCH = OPT.epoch if OPT.epoch else EPOCH
-SUPPORT = OPT.support if OPT.support else SUPPORT
-CONTINUE_RUN = True if OPT.ContinueRun else CONTINUE_RUN
-SEND_MAIL = False if EPOCH < 5 or DEBUG else SEND_MAIL
-print('>>> Attention: You are in DEBUG Mode!' if DEBUG else '')
 # ===== Main Code: =====
+
+
+def update_var():
+    global DEBUG, EPOCH, SUPPORT, SEND_MAIL, CONTINUE_RUN, KEEP_POSITION
+    DEBUG = OPT.debug if OPT.debug else DEBUG
+    EPOCH = OPT.epoch if OPT.epoch else EPOCH
+    SUPPORT = OPT.support if OPT.support else SUPPORT
+    CONTINUE_RUN = True if OPT.ContinueRun else CONTINUE_RUN
+    KEEP_POSITION = OPT.keep if OPT.keep != None else KEEP_POSITION
+    SEND_MAIL = False if EPOCH < 5 or DEBUG else SEND_MAIL
+    print('>>> Attention: You are in DEBUG Mode!' if DEBUG else '')
 
 
 def info(str):
@@ -75,18 +78,22 @@ class Fgo(object):
                     'Start in %d s, Please enter FULL SCREEN.' % (5-x))
                 time.sleep(1)
         else:
-            if OPT.keep or OPT.LastPos:
-                with open(ROOT + 'data/INIT_POS', 'r') as f:
+            # keep +1 to avoid keep == 0
+            if KEEP_POSITION+1 or OPT.CheckPos:
+                with open(ROOT + 'data/INIT_POS.{}'.format(KEEP_POSITION), 'r') as f:
                     res = f.readlines()
                 res = tuple([int(x) for x in res[0].split(' ')])
                 self.scr_pos1 = res[:2]
                 self.scr_pos2 = res[2:]
-                if OPT.LastPos:
+                if OPT.CheckPos:
                     self.c.move_to(self.scr_pos1)
                     time.sleep(0.5)
                     self.c.move_to(self.scr_pos2)
                     os._exit(0)
-                print('>>> Continue running keeping last position.')
+                if KEEP_POSITION == 0:
+                    print('>>> Running keeping last position.')
+                elif KEEP_POSITION:
+                    print('>>> Load init_pos from file', KEEP_POSITION)
             else:
                 while 1:
                     if input('>>> Move cursor to <top-left>, then press ENTER (q to exit): ') == 'q':
@@ -113,7 +120,7 @@ class Fgo(object):
                         logging.info(
                             'Start in %d s, make sure the window not covered.' % (3-x))
                         time.sleep(1)
-                with open(ROOT + 'data/INIT_POS', 'w') as f:
+                with open(ROOT + 'data/INIT_POS.{}'.format(KEEP_POSITION), 'w') as f:
                     pos = str(self.scr_pos1[0]) + ' ' + str(self.scr_pos1[1]) + \
                         ' ' + str(self.scr_pos2[0]) + \
                         ' ' + str(self.scr_pos2[1])
@@ -121,6 +128,7 @@ class Fgo(object):
                     print('>>> Position info saved.')
             self.width = abs(self.scr_pos2[0] - self.scr_pos1[0])
             self.height = abs(self.scr_pos2[1] - self.scr_pos1[1])
+            print('------------')
 
         # ===== position info: =====
         self.area = {
@@ -357,11 +365,11 @@ class Fgo(object):
         for _ in range(2):
             for i in range(5):
                 self.click_act(atk_card_x[i], 0.7019, 0.2)
-        info('ATK Card using over.')
+        info('Card using over.')
 
     def _similar(self, img1, img2, bound=30):
         # to find if 2 imgs(PIL jpg format) are very similar.
-        # - bound: if 2 imgs' distance in RGB < bound, return True. 
+        # - bound: if 2 imgs' distance in RGB < bound, return True.
         c1 = np.array(img1).mean(axis=(0, 1))
         c2 = np.array(img2).mean(axis=(0, 1))
         d = np.linalg.norm(c1 - c2)
@@ -394,13 +402,15 @@ class Fgo(object):
                     else:
                         self.img[name] = now_bit
                         # now_bit.save('./debug/{}.png'.format(name))
-                        logging.info('Got new img: {}, Distance: {:.4f}'.format(name, d))
+                        logging.info(
+                            'Got new img: {}, Distance: {:.4f}'.format(name, d))
                     return 1
-            elif self.grab(self.area[name], to_PIL=False)== self.img[name]:
+            elif self.grab(self.area[name], to_PIL=False) == self.img[name]:
                 logging.info('{} Detected, Status change.'.format(name))
                 return 1
             if time.time() - beg > max_time:
-                logging.error('{} running out of time: {}s'.format(name, max_time))
+                logging.error(
+                    '{} running out of time: {}s'.format(name, max_time))
                 return -1
             time.sleep(0.1)
 
@@ -419,7 +429,7 @@ class Fgo(object):
         function foramt: `def name():` means a function when self.img['name'] was detected.
         '''
         def atk():
-            info('Got status change, Start new turn...')
+            info('Got status change, Start new turn.')
             return 'NEXT_TURN'
 
         def fufu():
@@ -455,9 +465,9 @@ class Fgo(object):
         if OPT.order:
             # AtkOrder[OPT.order] represent the atk order.
             AtkOrder = (None, (0, 1, 2),
-                        (1, 0, 2), (2, 0, 1),
-                        (2, 1, 0), (1, 2, 0),
-                        (0, 2, 1))
+                        (0, 2, 1), (1, 2, 0),
+                        (2, 1, 0), (2, 0, 1),
+                        (1, 0, 2))
             # position: 0, 1, 2 from left to right.
             enemy_x = (0.1010, 0.3010, 0.4901)
             for ix in AtkOrder[OPT.order]:
@@ -527,7 +537,6 @@ class Fgo(object):
                     'Auto change EPOCH to {} to use all AP.'.format(EPOCH))
 
     def save_AP_recover_img(self):
-        print('>>> Saving AP_recover pic...')
         # choose AP bar:
         self.click_act(0.1896, 0.9611, 1)
         if self._monitor('AP_recover', 3, 0.2) == -1:
@@ -540,8 +549,7 @@ class Fgo(object):
         if not self.img['AP_recover']:
             self.save_AP_recover_img()
         for j in range(EPOCH):
-            print(
-                '\n -----<< EPOCH{} START >>-----'.format(j+1))
+            print('\n ----- EPOCH{} START -----'.format(j+1))
             global CURRENT_EPOCH
             CURRENT_EPOCH += 1
             self.one_battle()
@@ -566,18 +574,10 @@ class Fgo(object):
 
 if __name__ == '__main__':
     # if debug for pyscreenshot, set level to `INFO`, can't run in `DEBUG` level.
+    update_var()
     get_log()
     fgo = Fgo(full_screen=FULL_SCREEN, sleep=False)
     if DEBUG:
-        # fgo.wait_loading()
-        # fgo._choose_card()
-        # ori = Image.open('./data/menu_sample.jpg')
-        # img, _ = fgo.grab((0, 0, 1, 1), to_PIL=True, fname = 'now_fufu')
-        # img, _ = fgo.grab(fgo.area['menu'],to_PIL=True)
-        # fgo._similar(ori, img)
-        info('test message.')
-        logging.error('test message.')
-        logging.warn('test message.')
         pass
     elif OPT.locate:
         fgo.monitor_cursor_pos()
