@@ -3,6 +3,7 @@
 import win32api
 import win32con
 from PIL import ImageGrab
+import logging
 
 # Global Varables:
 ROOT = '/run/media/why/OS/WHY/Why酱の工具箱/fgo/'
@@ -24,6 +25,20 @@ def ScreenShot(x1, y1, x2, y2, to_PIL=False, fname=None):
     if fname:
         im.save(ROOT + 'data/{}.png'.format(fname))
     return (im, im) if to_PIL else im
+
+
+def get_log():
+    fmt = '%(asctime)s:%(levelname)s - %(message)s'
+    # date_fmt_echo = '%m-%d %H:%M:%S'
+    date_fmt_file = '%H:%M'
+    logging.basicConfig(level=logging.DEBUG, format=fmt,
+                        datefmt=date_fmt_file, filename=ROOT + 'data/fgo.LOG', filemode='w')
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    # if DEBUG:
+    #     console.setLevel(logging.DEBUG)
+    console.setFormatter(logging.Formatter(fmt, datefmt=date_fmt_file))
+    logging.getLogger().addHandler(console)
 
 
 class Cursor(object):

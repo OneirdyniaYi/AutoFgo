@@ -3,6 +3,7 @@
 from pymouse import PyMouse
 from PIL import Image
 import numpy as np
+import logging
 
 
 # Global Varables:
@@ -80,6 +81,35 @@ def ScreenShot(x1, y1, x2, y2, to_PIL=False, fname=None):
 #     import pyautogui
 #     # button7location = pyautogui.locateOnScreen('./debug/ori.png')
 #     return pyautogui.screenshot(region=(x1, y1, x2-x1, y2-y1))
+
+
+class SpecialFormatter(logging.Formatter):
+    base = '\033[0;{}m>> {}-%(asctime)s - %(message)s\033[0m'
+    FORMATS = {logging.DEBUG: base.format(35, 'D'),
+               logging.ERROR: base.format(31, 'E'),
+               logging.INFO: base.format(32, 'I'),
+               logging.WARN: base.format(33, 'W')}
+
+    def format(self, record):
+        datefmt = '%H:%M:%S'
+        tmp_fmter = logging.Formatter(self.FORMATS.get(
+            record.levelno), datefmt=datefmt)
+        return tmp_fmter.format(record)
+
+
+def get_log():
+    # date_fmt = '%m-%d %H:%M:%S'
+    file_fmt = '> %(asctime)s:%(levelname)s - %(message)s'
+    file_date_fmt = '%H:%M'
+    logging.basicConfig(level=logging.INFO, format=file_fmt,
+                        datefmt=file_date_fmt, filename=ROOT + 'data/fgo.LOG', filemode='w')
+
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    # if DEBUG:
+    #     console.setLevel(logging.DEBUG)
+    console.setFormatter(SpecialFormatter())
+    logging.getLogger().addHandler(console)
 
 
 class Cursor(object):

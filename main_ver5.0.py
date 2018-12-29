@@ -1,7 +1,7 @@
 # coding: utf-8
 # author: Why
 import argparse
-import logging
+# import logging
 import os
 import sys
 import smtplib
@@ -53,20 +53,6 @@ CONTINUE_RUN = True if OPT.ContinueRun else CONTINUE_RUN
 SEND_MAIL = False if EPOCH < 5 or DEBUG else SEND_MAIL
 print('>>> Attention: You are in DEBUG Mode!' if DEBUG else '')
 # ===== Main Code: =====
-
-
-def get_log():
-    fmt = '> %(asctime)s:%(levelname)s - %(message)s'
-    # date_fmt_echo = '%m-%d %H:%M:%S'
-    date_fmt_file = '%H:%M'
-    logging.basicConfig(level=logging.DEBUG, format=fmt,
-                        datefmt=date_fmt_file, filename=ROOT + 'data/fgo.LOG', filemode='w')
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    # if DEBUG:
-    #     console.setLevel(logging.DEBUG)
-    console.setFormatter(logging.Formatter(fmt, datefmt=date_fmt_file))
-    logging.getLogger().addHandler(console)
 
 
 def info(str):
@@ -346,7 +332,7 @@ class Fgo(object):
                 if now < min_sigma:
                     min_sigma = now
                     nearest3RGB = cards
-        logging.info('Choose card: {}, Min var(RGB)={:.1f}.'.format(
+        logging.info('CardUse:{}, MinVar(RGB)={:.1f}.'.format(
             nearest3RGB, min_sigma))
         # print(nearest3RGB)
         return tuple(nearest3RGB)
@@ -585,10 +571,13 @@ if __name__ == '__main__':
     if DEBUG:
         # fgo.wait_loading()
         # fgo._choose_card()
-        ori = Image.open('./data/menu_sample.jpg')
+        # ori = Image.open('./data/menu_sample.jpg')
         # img, _ = fgo.grab((0, 0, 1, 1), to_PIL=True, fname = 'now_fufu')
-        img, _ = fgo.grab(fgo.area['menu'],to_PIL=True)
-        fgo._similar(ori, img)
+        # img, _ = fgo.grab(fgo.area['menu'],to_PIL=True)
+        # fgo._similar(ori, img)
+        info('test message.')
+        logging.error('test message.')
+        logging.warn('test message.')
         pass
     elif OPT.locate:
         fgo.monitor_cursor_pos()
