@@ -10,6 +10,7 @@ from email import encoders
 from email.header import Header
 from email.mime.multipart import MIMEBase, MIMEMultipart
 from email.mime.text import MIMEText
+from collections import Iterable
 
 import numpy as np
 from PIL import Image
@@ -254,7 +255,7 @@ class Fgo(object):
         self.click_act(0.0729+0.0527*supNo, 0.1796, 0.8)
         self.click_act(sup_tag_x, sup_tag_y, 1)
 
-        if self._monitor('StartMission', 10, 0.3) == 1:
+        if self._monitor('StartMission', 10, 0.3) != -1:
             self._mission_start()
             return 0
         else:
@@ -378,48 +379,56 @@ class Fgo(object):
         # d +0.0001 to avoid that d == 0
         return d+0.0001 if d < bound else False
 
-    def _monitor(self, name, max_time, sleep, bound=30, AllowPause=False):
+    def _monitor(self, names, max_time, sleep, bound=30, AllowPause=False, ClickToSkip=False):
         '''
         used for monitor area change.
         When `self.pre_img[name]` is similar to now_img, save now img_bitmap as new img and return.
         If already saved, When `self.img[name]` == now_img, return value.
         Args:
         ------
-        - name: choose from self.area.keys()
+        - names: tuple or a single str, choose from self.area.keys()
         - max_time: maxtime to wait for.
         - sleep: sleep time when use `_similar()` to judge. To avoid the situation: _similar(now, ori) == True but now != ori, because `now_img` is still in randering, they are similar but not the same.
         - bound: if 2 imgs' RGB distance < bound, regard they are similar.
         - AllowPause: if allow pausing during the loop.
+        - ClickToSkip: Click the screen to skip something.
         '''
+        names = (names, ) if not isinstance(names, Iterable) else names
         beg = time.time()
         if AllowPause:
             self.kb_listener.start()
         while 1:
-            if not self.img[name]:
-                now, now_bit = self.grab(self.area[name], to_PIL=True)
-                d = self._similar(self.LoadImg[name], now, bound)
-                if d:
-                    if sleep:
-                        time.sleep(sleep)
-                        self._monitor(name, 1.5, 0, bound)
-                    else:
-                        self.img[name] = now_bit
-                        # now_bit.save('./debug/{}.png'.format(name))
-                        logging.info(
-                            'Got new img: {}, Distance: {:.4f}'.format(name, d))
-                    return 1
-            elif self.grab(self.area[name], to_PIL=False) == self.img[name]:
-                logging.info('{} Detected, Status change.'.format(name))
-                return 1
+            for name in names:
+                # First running for `name`:
+                if not self.img[name]:
+                    now, now_bit = self.grab(self.area[name], to_PIL=True)
+                    d = self._similar(self.LoadImg[name], now, bound)
+                    if d:
+                        if sleep:
+                            time.sleep(sleep)
+                            self._monitor(name, 1.5, 0, bound)
+                        else:
+                            self.img[name] = now_bit
+                            # now_bit.save('./debug/{}.png'.format(name))
+                            logging.info(
+                                'Got new img: {}, Distance: {:.4f}'.format(name, d))
+                        return names.index(name)
+                # already have self.img[name]:
+                elif self.grab(self.area[name], to_PIL=False) == self.img[name]:
+                    logging.info('{} Detected, Status change.'.format(name))
+                    return names.index(name)
+
+            # run out of time:
             if time.time() - beg > max_time:
                 logging.error(
                     '{} running out of time: {}s'.format(name, max_time))
                 return -1
-            
             # to listen keyboard and pause:
             if not self.kb_listener.state:
                 self.kb_listener.stop()
                 input('>>> Press enter to continue running:')
+            if ClickToSkip:
+                self.click_act(0.7771, 0.9627, CLICK_BREAK_TIME)
             time.sleep(0.1)
 
     def wait_loading(self):
@@ -431,10 +440,11 @@ class Fgo(object):
             os._exit(0)
         info('Finish loading, battle start.')
 
-    def _react_change(self, name):
+    def _react_change(self, name_ix):
         '''
         Define functions to react each kinds of changes DURING a turn.
         function foramt: `def name():` means a function when self.img['name'] was detected.
+        name_ix: the index of name of (atk, fufu, menu) order.
         '''
         def atk():
             info('Got status change, Start new turn.')
@@ -453,18 +463,7 @@ class Fgo(object):
             CLICK_BREAK_TIME = PRE_BREAK_TIME
             return 'BATTLE_OVER'
 
-        react_func = {
-            'atk': atk,
-            'fufu': fufu,
-            'menu': menu
-        }
-
-        if self.img[name] and self.grab(self.area[name]) == self.img[name]:
-            return react_func[name]()
-        elif not self.img[name] and self._similar(self.LoadImg[name], self.grab(self.area[name], to_PIL=True)[0]):
-            return react_func[name]()
-        else:
-            return 0    # no match.
+        return (atk, fufu, menu)[name_ix]()
 
     def one_turn(self, turn):
         if USE_SKILL:
@@ -485,26 +484,24 @@ class Fgo(object):
 
         # Monitoring status change:
         info('Monitoring, no change got...')
-        beg_time = time.time()
-        while 1:
-            # when running time out:
-            if 105 > time.time() - beg_time > 100:
+        res = self._monitor(('atk', 'fufu', 'menu'), 100, 0.3, 20, True, True)
+        if res == -1:
+            for _ in range(3):
+                # the left position of screen:
                 self.click_act(0.0521, 0.4259, 1)
                 logging.warning('Something wrong. Trying to fix it.')
-            elif time.time() - beg_time > 150:
-                logging.error(
-                    'Running out of time, No change got for 2min30s.')
-                self.send_mail('Err')
-                raise RuntimeError('Running out of time.')
-            monitor_ob = ['atk', 'fufu', 'menu']
-            for x in monitor_ob:
-                res = self._react_change(x)
-                if res == 'CONTINUE':
-                    break
-                elif res:   # `battle_over` or `next_turn`
-                    return res
-            # click to skip something
-            self.click_act(0.7771, 0.9627, CLICK_BREAK_TIME)
+            res = self._monitor(('atk', 'fufu', 'menu'), 50, 0.3, 20, True, True)
+        if res != -1:
+            status = self._react_change(res)
+            if status == 'CONTINUE':
+                self._monitor(('atk', 'fufu', 'menu'), 50, 0.3, 20, False, True)
+            elif status:   # `battle_over` or `next_turn`
+                return status
+        else:
+            logging.error(
+                'Running out of time, No change got for 2min30s.')
+            self.send_mail('Err')
+            raise RuntimeError('Running out of time.')
 
     def one_battle(self, go_on=False):
         if not go_on:

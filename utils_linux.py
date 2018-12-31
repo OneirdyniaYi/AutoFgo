@@ -154,15 +154,4 @@ class KeyEventListener(PyKeyboardEvent):
 
 if __name__ == '__main__':
     # get_wallpaper_RGB()
-    c = KeyEventListener()
-    c.start()
-    # print('start')
-    # time.sleep(2)
-    # c.stop()
-    while 1:
-        if not (c.state):
-            break
-        print('running')
-        time.sleep(1)
-    print('pause')
     pass
