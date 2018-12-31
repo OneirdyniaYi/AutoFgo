@@ -11,6 +11,7 @@ from email.header import Header
 from email.mime.multipart import MIMEBase, MIMEMultipart
 from email.mime.text import MIMEText
 from collections import Iterable
+from pykeyboard import PyKeyboard
 
 import numpy as np
 from PIL import Image
@@ -40,6 +41,8 @@ Args.add_argument('--CheckPos', '-p', action='store_true',
                   help='To see the window-position, shoud be used with `--keep`.')
 Args.add_argument('--debug', '-d', action='store_true',
                   help='Enter DEBUG mode.')
+Args.add_argument('--shutdown', '-sd', action='store_true',
+                  help='close the simulator after running.')
 Args.add_argument('--ContinueRun', '-c', action='store_true',
                   help='Continue running in a battle.')
 Args.add_argument('--locate', '-L', action='store_true',
@@ -56,6 +59,8 @@ def update_var():
     CONTINUE_RUN = True if OPT.ContinueRun else CONTINUE_RUN
     KEEP_POSITION = OPT.keep if OPT.keep != None else KEEP_POSITION
     SEND_MAIL = False if EPOCH < 5 or DEBUG else SEND_MAIL
+    if OPT.shutdown and SYSTEM == 'linux':
+        input('\033[1;31m>>> Warning: Computer will shutdown after running. Continue?\033[0m')
     print('>>> Attention: You are in DEBUG Mode!' if DEBUG else '')
 
 
@@ -65,12 +70,11 @@ def info(str):
 
 class Fgo(object):
     __slots__ = ('c', 'width', 'height', 'scr_pos1',
-                 'scr_pos2', 'area', 'img', 'LoadImg', 'kb_listener')
+                 'scr_pos2', 'area', 'img', 'LoadImg')
 
     def __init__(self, full_screen=True, sleep=True):
         # [init by yourself] put cursor at the down-right position of the game window.
         self.c = Cursor(init_pos=False)
-        self.kb_listener = KeyEventListener()
         if full_screen:
             self.width, self.height = self.c.get_screen_wh()
             self.scr_pos1 = (0, 0)
@@ -248,6 +252,7 @@ class Fgo(object):
         sup_tag_x = 0.4893
         sup_tag_y = 0.3944
         # click the center of battle tag.
+        time.sleep(EXTRA_SLEEP_UNIT*4)
         self.click_act(0.7252, 0.2740, 2)
         self.use_apple()
         # choose support servent class icon:
@@ -386,17 +391,18 @@ class Fgo(object):
         If already saved, When `self.img[name]` == now_img, return value.
         Args:
         ------
-        - names: tuple or a single str, choose from self.area.keys()
+        - names: tuple, choose from self.area.keys()
         - max_time: maxtime to wait for.
         - sleep: sleep time when use `_similar()` to judge. To avoid the situation: _similar(now, ori) == True but now != ori, because `now_img` is still in randering, they are similar but not the same.
         - bound: if 2 imgs' RGB distance < bound, regard they are similar.
         - AllowPause: if allow pausing during the loop.
         - ClickToSkip: Click the screen to skip something.
         '''
-        names = (names, ) if not isinstance(names, Iterable) else names
+        names = (names, ) if len(names[0]) == 1 else names
         beg = time.time()
         if AllowPause:
-            self.kb_listener.start()
+            kb_listener = KeyEventListener()
+            kb_listener.start()
         while 1:
             for name in names:
                 # First running for `name`:
@@ -424,9 +430,9 @@ class Fgo(object):
                     '{} running out of time: {}s'.format(name, max_time))
                 return -1
             # to listen keyboard and pause:
-            if not self.kb_listener.state:
-                self.kb_listener.stop()
+            if AllowPause and KeyEventListener.PAUSE:
                 input('>>> Press enter to continue running:')
+                KeyEventListener.PAUSE = False
             if ClickToSkip:
                 self.click_act(0.7771, 0.9627, CLICK_BREAK_TIME)
             time.sleep(0.1)
@@ -562,6 +568,12 @@ class Fgo(object):
         end = time.time()
         logging.info('Total time: {:.1f}(min), <{:.1f}(min) on avarage.>'.format(
             (end-beg)/60, (end-beg)/(60*EPOCH)))
+        if OPT.shutdown and SYSTEM == 'linux':
+            self.grab((0, 0, 1, 1), 'over')
+            # k = PyKeyboard()
+            # k.press_keys(['Control_L', 'Delete'])
+            os.system('shutdown 0')
+
         if SEND_MAIL:
             self.send_mail('Done')
 
