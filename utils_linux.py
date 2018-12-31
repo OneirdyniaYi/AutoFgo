@@ -4,7 +4,8 @@ from pymouse import PyMouse
 from PIL import Image
 import numpy as np
 import logging
-
+from pykeyboard import PyKeyboardEvent
+import time
 
 # Global Varables:
 ROOT = '/run/media/why/OS/WHY/Why酱の工具箱/fgo/'
@@ -132,6 +133,20 @@ class Cursor(object):
         return self.c.screen_size()
 
 
+class KeyEventListener(PyKeyboardEvent):
+    def tap(self, keycode, character, press):
+        '''
+        Args:
+        ------
+        keycode: Number ID for input key.
+        character: character of the input key.
+        press: BOOL, True for press, False for release
+        '''
+        print('keycode:', keycode, 'character:', character, 'press:', press)
+        if character in ('P'):
+            self.stop()
+
+
 # def get_wallpaper_RGB():
 #     pic = ScreenShot(0, 0, 10, 10)
 #     print(np.array(pic, dtype=np.uint8).mean(axis=(0, 1)))
@@ -139,4 +154,15 @@ class Cursor(object):
 
 if __name__ == '__main__':
     # get_wallpaper_RGB()
+    c = KeyEventListener()
+    c.start()
+    # print('start')
+    # time.sleep(2)
+    # c.stop()
+    while 1:
+        if not (c.state):
+            break
+        print('running')
+        time.sleep(1)
+    print('pause')
     pass

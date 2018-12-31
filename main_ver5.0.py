@@ -64,11 +64,12 @@ def info(str):
 
 class Fgo(object):
     __slots__ = ('c', 'width', 'height', 'scr_pos1',
-                 'scr_pos2', 'area', 'img', 'LoadImg')
+                 'scr_pos2', 'area', 'img', 'LoadImg', 'kb_listener')
 
     def __init__(self, full_screen=True, sleep=True):
         # [init by yourself] put cursor at the down-right position of the game window.
         self.c = Cursor(init_pos=False)
+        self.kb_listener = KeyEventListener()
         if full_screen:
             self.width, self.height = self.c.get_screen_wh()
             self.scr_pos1 = (0, 0)
@@ -78,8 +79,7 @@ class Fgo(object):
                     'Start in %d s, Please enter FULL SCREEN.' % (5-x))
                 time.sleep(1)
         else:
-            # keep +1 to avoid keep == 0
-            if KEEP_POSITION+1 or OPT.CheckPos:
+            if type(KEEP_POSITION) == int or OPT.CheckPos:
                 with open(ROOT + 'data/INIT_POS.{}'.format(KEEP_POSITION), 'r') as f:
                     res = f.readlines()
                 res = tuple([int(x) for x in res[0].split(' ')])
@@ -120,7 +120,7 @@ class Fgo(object):
                         logging.info(
                             'Start in %d s, make sure the window not covered.' % (3-x))
                         time.sleep(1)
-                with open(ROOT + 'data/INIT_POS.{}'.format(KEEP_POSITION), 'w') as f:
+                with open(ROOT + 'data/INIT_POS.0', 'w') as f:
                     pos = str(self.scr_pos1[0]) + ' ' + str(self.scr_pos1[1]) + \
                         ' ' + str(self.scr_pos2[0]) + \
                         ' ' + str(self.scr_pos2[1])
@@ -378,19 +378,22 @@ class Fgo(object):
         # d +0.0001 to avoid that d == 0
         return d+0.0001 if d < bound else False
 
-    def _monitor(self, name, max_time, sleep, bound=30):
+    def _monitor(self, name, max_time, sleep, bound=30, AllowPause=False):
         '''
-        used for waiting loading.
-        name = `fufu` or `atk`
-        When `self.img[name]` is similar to now_img, save now img_bitmap as new img and return.
+        used for monitor area change.
+        When `self.pre_img[name]` is similar to now_img, save now img_bitmap as new img and return.
+        If already saved, When `self.img[name]` == now_img, return value.
         Args:
         ------
         - name: choose from self.area.keys()
         - max_time: maxtime to wait for.
         - sleep: sleep time when use `_similar()` to judge. To avoid the situation: _similar(now, ori) == True but now != ori, because `now_img` is still in randering, they are similar but not the same.
         - bound: if 2 imgs' RGB distance < bound, regard they are similar.
+        - AllowPause: if allow pausing during the loop.
         '''
         beg = time.time()
+        if AllowPause:
+            self.kb_listener.start()
         while 1:
             if not self.img[name]:
                 now, now_bit = self.grab(self.area[name], to_PIL=True)
@@ -412,6 +415,11 @@ class Fgo(object):
                 logging.error(
                     '{} running out of time: {}s'.format(name, max_time))
                 return -1
+            
+            # to listen keyboard and pause:
+            if not self.kb_listener.state:
+                self.kb_listener.stop()
+                input('>>> Press enter to continue running:')
             time.sleep(0.1)
 
     def wait_loading(self):

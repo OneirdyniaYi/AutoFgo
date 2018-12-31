@@ -1,9 +1,9 @@
 # coding: utf-8
 # Author: Why
-# ======<Special Mode>======= #
+# ======<Mode>======= #
 DEBUG = False       # type: bool
 CONTINUE_RUN = False    # for debug
-# 0 for last position, n for loading from file_n, False for skip.
+# 0 for last position, n for loading from file_n, False for skip:
 KEEP_POSITION = False
 Nero_MAX = False     # 尼禄祭！误触区域内有高难本
 Choose_item = False  # 万圣节！开始战斗前要选道具
@@ -43,6 +43,8 @@ USED_SKILL = (0, 1, 2, 3, 4, 5, 6, 7, 8)
 
 # click to skip something:
 CLICK_BREAK_TIME = 1
+
+PAUSE_KEY = 'P'     # press shift+p to pause.
 
 # # use master's skill or not
 # USE_MASTER_SKILL = True
