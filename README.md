@@ -1,16 +1,23 @@
-# why-Fgo-auto
-使用pywin32自动刷狗粮...
+# AutoFgo
+Fgo自动肝素材/狗粮/活动/脚本。
+
+---
 
 ### Usage 
 
-- edit `config.py`
-- then run `Fgo_win32.py`
+- Replace the screenshot in ./data with your own image (of the right area).
+  - Run `Fgo.grab(fgo.area[name])` to replace files.
+- Edit `config.py`
+- Then run `main.py`
 
 ### Requirements
 
-- cv2
-- pywin32
-- numpy
-- PIL
-
-
+- **On Unix(Linux):**
+  - pillow 
+  - pyuserinput
+  - numpy 
+  - autopy
+- **Or Other**
+  - pywin32
+  - pillow
+  - numpy

@@ -1,5 +1,6 @@
 # coding: utf-8
 # author: Why
+# version: 5.0
 import argparse
 # import logging
 import os
@@ -60,7 +61,8 @@ def update_var():
     KEEP_POSITION = OPT.keep if OPT.keep != None else KEEP_POSITION
     SEND_MAIL = False if EPOCH < 5 or DEBUG else SEND_MAIL
     if OPT.shutdown and SYSTEM == 'linux':
-        input('\033[1;31m>>> Warning: Computer will shutdown after running. Continue?\033[0m')
+        input(
+            '\033[1;31m>>> Warning: Computer will shutdown after running. Continue?\033[0m')
     print('>>> Attention: You are in DEBUG Mode!' if DEBUG else '')
 
 
@@ -316,7 +318,7 @@ class Fgo(object):
             time.sleep(EXTRA_SLEEP_UNIT*2)
             self.img['skills'] = self.get_skill_img()
         else:
-            time.sleep(EXTRA_SLEEP_UNIT*2)
+            time.sleep(EXTRA_SLEEP_UNIT*4)
             now_skill_img = self.get_skill_img()
             if not(now_skill_img == self.img['skills']):
                 for i in USED_SKILL:
@@ -604,6 +606,9 @@ class Fgo(object):
                 break
             time.sleep(0.1)
 
+    def debug(self):
+        pass
+
 
 if __name__ == '__main__':
     # if debug for pyscreenshot, set level to `INFO`, can't run in `DEBUG` level.
@@ -611,15 +616,7 @@ if __name__ == '__main__':
     get_log()
     fgo = Fgo(full_screen=FULL_SCREEN, sleep=False)
     if DEBUG:
-        ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
-                 0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
-        ski_y = 0.8009
-        skill_imgs = list(range(9))
-        for i in USED_SKILL:
-            skill_imgs[i] = fgo.grab(
-                (ski_x[i]-0.0138, ski_y-0.0222, ski_x[i]+0.0138, ski_y))
-            skill_imgs[i].save('./debug/{}_new.png'.format(i))
-        pass
+        fgo.debug()
     elif OPT.locate:
         fgo.monitor_cursor_pos()
     elif CONTINUE_RUN:

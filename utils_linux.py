@@ -16,8 +16,16 @@ SKILL_SLEEP2 = 0.1
 SKILL_SLEEP3 = 0.4
 CLICK_BAR_SLEEP = 0.2
 EXTRA_SLEEP_UNIT = 0.05      # defalut 0.1
-# LOADING_WAIT_TIME = 5       # time sleep before loading.
-# WAIT_LOADING_SLEEP = 1      # sanp between loadings
+
+# in low DPI:
+ATK_SLEEP_TIME = 0.1
+ULTIMATE_SLEEP = 0.2
+SKILL_SLEEP1 = 0.1
+SKILL_SLEEP2 = 0.1
+SKILL_SLEEP3 = 0.25
+CLICK_BAR_SLEEP = 0.1
+EXTRA_SLEEP_UNIT = 0.02      # defalut 0.1
+
 
 # LOG:
 # - pyscreenshot: too slow
