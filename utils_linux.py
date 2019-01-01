@@ -12,8 +12,8 @@ ROOT = '/run/media/why/OS/WHY/Why酱の工具箱/fgo/'
 ATK_SLEEP_TIME = 0.15
 ULTIMATE_SLEEP = 0.2
 SKILL_SLEEP1 = 0.15
-SKILL_SLEEP2 = 0.2
-SKILL_SLEEP3 = 0.3
+SKILL_SLEEP2 = 0.1
+SKILL_SLEEP3 = 0.4
 CLICK_BAR_SLEEP = 0.2
 EXTRA_SLEEP_UNIT = 0.05      # defalut 0.1
 # LOADING_WAIT_TIME = 5       # time sleep before loading.
@@ -144,7 +144,7 @@ class KeyEventListener(PyKeyboardEvent):
         character: character of the input key.
         press: BOOL, True for press, False for release
         '''
-        print('keycode:', keycode, 'character:', character, 'press:', press)
+        # print('keycode:', keycode, 'character:', character, 'press:', press)
         if character == 'p':
             KeyEventListener.PAUSE = True
 

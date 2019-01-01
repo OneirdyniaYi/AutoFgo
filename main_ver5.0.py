@@ -270,7 +270,7 @@ class Fgo(object):
                 self.send_mail('Error')
                 raise RuntimeError('Can\'t get START_MISSION tag for 10s')
 
-    def get_skill_img(self):
+    def get_skill_img(self, saveImg=False):
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
         ski_y = 0.8009
@@ -278,7 +278,8 @@ class Fgo(object):
         for i in USED_SKILL:
             skill_imgs[i] = self.grab(
                 (ski_x[i]-0.0138, ski_y-0.0222, ski_x[i]+0.0138, ski_y))
-            skill_imgs[i].save('./debug/{}.png'.format(i))
+            if saveImg:
+                skill_imgs[i].save('./debug/{}.png'.format(i))
         return skill_imgs
 
     def _use_one_skill(self, skill_no):
@@ -292,8 +293,8 @@ class Fgo(object):
         click_status = True
         while not(self.grab(self.area['atk']) == self.img['atk']):
             # to avoid clicking avator:
-            if click_status:
-                time.sleep(1)
+            if click_status and not int(time.time() - beg) % 0.5:
+                # time.sleep(0.5)
                 self.click_act(0.0521, 0.4259, 0)
                 click_status = False
             if 8 > time.time() - beg > 6:
@@ -346,10 +347,10 @@ class Fgo(object):
                 if now < min_sigma:
                     min_sigma = now
                     nearest3RGB = cards
-        logging.info('CardUse:{}, MinVar(RGB)={:.1f}.'.format(
+        logging.info('MinVar=Var{}={:.1f}.'.format(
             nearest3RGB, min_sigma))
         # print(nearest3RGB)
-        return tuple(nearest3RGB)
+        return tuple(nearest3RGB), min_sigma
 
     def attack(self):
         info('Now start attacking....')
@@ -358,7 +359,21 @@ class Fgo(object):
         self.click_act(0.8823, 0.8444, 1)
         # use normal atk card:
         atk_card_x = [0.1003+0.2007*x for x in range(5)]
-        nearest3ix = self._choose_card()
+        nearest3ix, min_sigma = self._choose_card()
+        sigmas = [min_sigma]
+        ixs = [nearest3ix]
+        if min_sigma > 300:
+            for _ in range(2):
+                nearest3ix, min_sigma = self._choose_card()
+                sigmas.append(min_sigma)
+                ixs.append(nearest3ix)
+                if min_sigma < 300:
+                    break
+            if min_sigma > 300:
+                min_sigma = min(sigmas)
+                nearest3ix = ixs[sigmas.index(min_sigma)]
+        logging.info('CardUse:{}, MinVar(RGB)={:.1f}.'.format(
+            nearest3ix, min_sigma))
         time.sleep(EXTRA_SLEEP_UNIT*3)
         for i in range(3):
             self.click_act(atk_card_x[nearest3ix[i]], 0.7019, ATK_SLEEP_TIME)
@@ -400,9 +415,12 @@ class Fgo(object):
         '''
         names = (names, ) if len(names[0]) == 1 else names
         beg = time.time()
+        pause_time = 0      # set for not calculating time for pause
+        flag = 0
         if AllowPause:
             kb_listener = KeyEventListener()
             kb_listener.start()
+        # start monitor:
         while 1:
             for name in names:
                 # First running for `name`:
@@ -424,17 +442,22 @@ class Fgo(object):
                     logging.info('{} Detected, Status change.'.format(name))
                     return names.index(name)
 
-            # run out of time:
-            if time.time() - beg > max_time:
-                logging.error(
-                    '{} running out of time: {}s'.format(name, max_time))
-                return -1
             # to listen keyboard and pause:
             if AllowPause and KeyEventListener.PAUSE:
+                break_time = time.time()
                 input('>>> Press enter to continue running:')
                 KeyEventListener.PAUSE = False
-            if ClickToSkip:
-                self.click_act(0.7771, 0.9627, CLICK_BREAK_TIME)
+                pause_time += time.time() - break_time
+            # run out of time:
+            if time.time() - beg - pause_time > max_time:
+                logging.error(
+                    '{} running out of time: {}s'.format(names, max_time))
+                return -1
+            # every unit time pass:
+            if ClickToSkip and flag == int(CLICK_BREAK_TIME/0.1):
+                self.click_act(0.7771, 0.9627, 0)
+                flag = 0
+            flag += 1
             time.sleep(0.1)
 
     def wait_loading(self):
@@ -446,19 +469,15 @@ class Fgo(object):
             os._exit(0)
         info('Finish loading, battle start.')
 
-    def _react_change(self, name_ix):
-        '''
-        Define functions to react each kinds of changes DURING a turn.
-        function foramt: `def name():` means a function when self.img['name'] was detected.
-        name_ix: the index of name of (atk, fufu, menu) order.
-        '''
+    def one_turn(self, turn):
+        # Define functions to react each kinds of changes DURING a turn:
         def atk():
             info('Got status change, Start new turn.')
             return 'NEXT_TURN'
 
         def fufu():
             global CLICK_BREAK_TIME
-            CLICK_BREAK_TIME = 3.5
+            CLICK_BREAK_TIME = 5
             info('Get loading page, end epoch{}.'.format(CURRENT_EPOCH))
             time.sleep(1)
             return 'CONTINUE'
@@ -469,9 +488,6 @@ class Fgo(object):
             CLICK_BREAK_TIME = PRE_BREAK_TIME
             return 'BATTLE_OVER'
 
-        return (atk, fufu, menu)[name_ix]()
-
-    def one_turn(self, turn):
         if USE_SKILL:
             self.use_skill(turn)
         # reset the attack order:
@@ -490,22 +506,22 @@ class Fgo(object):
 
         # Monitoring status change:
         info('Monitoring, no change got...')
-        res = self._monitor(('atk', 'fufu', 'menu'), 100, 0.3, 20, True, True)
+        res = self._monitor(('atk', 'fufu', 'menu'), 120, 0, 20, True, True)
         if res == -1:
             for _ in range(3):
                 # the left position of screen:
                 self.click_act(0.0521, 0.4259, 1)
                 logging.warning('Something wrong. Trying to fix it.')
-            res = self._monitor(('atk', 'fufu', 'menu'), 50, 0.3, 20, True, True)
+            res = self._monitor(('atk', 'fufu', 'menu'), 50, 0, 20, True, True)
         if res != -1:
-            status = self._react_change(res)
+            status = (atk, fufu, menu)[res]()
             if status == 'CONTINUE':
-                self._monitor(('atk', 'fufu', 'menu'), 50, 0.3, 20, False, True)
-            elif status:   # `battle_over` or `next_turn`
-                return status
+                res = self._monitor(('atk', 'menu'), 50, 0, 20, False, True)
+                status = (atk, menu)[res]()
+            return status
         else:
             logging.error(
-                'Running out of time, No change got for 2min30s.')
+                'Running out of time for 170s.')
             self.send_mail('Err')
             raise RuntimeError('Running out of time.')
 
@@ -569,9 +585,9 @@ class Fgo(object):
         logging.info('Total time: {:.1f}(min), <{:.1f}(min) on avarage.>'.format(
             (end-beg)/60, (end-beg)/(60*EPOCH)))
         if OPT.shutdown and SYSTEM == 'linux':
-            self.grab((0, 0, 1, 1), 'over')
             # k = PyKeyboard()
             # k.press_keys(['Control_L', 'Delete'])
+            self.send_mail('Done')
             os.system('shutdown 0')
 
         if SEND_MAIL:
@@ -595,6 +611,14 @@ if __name__ == '__main__':
     get_log()
     fgo = Fgo(full_screen=FULL_SCREEN, sleep=False)
     if DEBUG:
+        ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
+                 0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
+        ski_y = 0.8009
+        skill_imgs = list(range(9))
+        for i in USED_SKILL:
+            skill_imgs[i] = fgo.grab(
+                (ski_x[i]-0.0138, ski_y-0.0222, ski_x[i]+0.0138, ski_y))
+            skill_imgs[i].save('./debug/{}_new.png'.format(i))
         pass
     elif OPT.locate:
         fgo.monitor_cursor_pos()
