@@ -253,12 +253,13 @@ class Fgo(object):
         # postion of support servant tag.
         sup_tag_x = 0.4893
         sup_tag_y = 0.3944
+        self.click_act(0.7771, 0.9627, 0.3)
         # click the center of battle tag.
-        time.sleep(EXTRA_SLEEP_UNIT*4)
-        self.click_act(0.7252, 0.2740, 2)
+        # self.click_act(0.7252, 0.2740, 2)
+        self.click_act(0.7252, 0.2740, 0)
         self.use_apple()
         # choose support servent class icon:
-        time.sleep(EXTRA_SLEEP_UNIT*4)
+        # time.sleep(EXTRA_SLEEP_UNIT*4)
         self.click_act(0.0729+0.0527*supNo, 0.1796, 0.8)
         self.click_act(sup_tag_x, sup_tag_y, 1)
 
@@ -311,6 +312,7 @@ class Fgo(object):
         info('Now using skills...')
         # snap_x = 0.0734
         if turn == 1:
+            time.sleep(EXTRA_SLEEP_UNIT*10)
             for i in USED_SKILL:
                 self._use_one_skill(i)
             if Yili:
@@ -321,6 +323,7 @@ class Fgo(object):
             time.sleep(EXTRA_SLEEP_UNIT*4)
             now_skill_img = self.get_skill_img()
             if not(now_skill_img == self.img['skills']):
+                time.sleep(EXTRA_SLEEP_UNIT*10)
                 for i in USED_SKILL:
                     if not(now_skill_img[i] == self.img['skills'][i]):
                         self._use_one_skill(i)
@@ -401,7 +404,7 @@ class Fgo(object):
         # d +0.0001 to avoid that d == 0
         return d+0.0001 if d < bound else False
 
-    def _monitor(self, names, max_time, sleep, bound=30, AllowPause=False, ClickToSkip=False):
+    def _monitor(self, names, max_time, sleep, bound=30, AllowPause=False, ClickToSkip=False, EchoError=True):
         '''
         used for monitor area change.
         When `self.pre_img[name]` is similar to now_img, save now img_bitmap as new img and return.
@@ -414,6 +417,7 @@ class Fgo(object):
         - bound: if 2 imgs' RGB distance < bound, regard they are similar.
         - AllowPause: if allow pausing during the loop.
         - ClickToSkip: Click the screen to skip something.
+        - EchoError: If printing error message when running out of time.
         '''
         names = (names, ) if len(names[0]) == 1 else names
         beg = time.time()
@@ -452,8 +456,9 @@ class Fgo(object):
                 pause_time += time.time() - break_time
             # run out of time:
             if time.time() - beg - pause_time > max_time:
-                logging.error(
-                    '{} running out of time: {}s'.format(names, max_time))
+                if EchoError:
+                    logging.error(
+                        '{} running out of time: {}s'.format(names, max_time))
                 return -1
             # every unit time pass:
             if ClickToSkip and flag == int(CLICK_BREAK_TIME/0.1):
@@ -550,7 +555,8 @@ class Fgo(object):
             'Running over 50 turns, program was forced to stop.')
 
     def use_apple(self):
-        if self.grab(self.area['AP_recover']) == self.img['AP_recover']:
+        # if self.grab(self.area['AP_recover']) == self.img['AP_recover']:
+        if self._monitor('AP_recover', 1.5, 0.2, EchoError=False) != -1:
             logging.info('>>> Using apple...')
             # choose apple:
             self.click_act(0.5, 0.4463, 0.7)
@@ -575,8 +581,8 @@ class Fgo(object):
 
     def run(self):
         beg = time.time()
-        if not self.img['AP_recover']:
-            self.save_AP_recover_img()
+        # if not self.img['AP_recover']:
+            # self.save_AP_recover_img()
         for j in range(EPOCH):
             print('\n ----- EPOCH{} START -----'.format(j+1))
             global CURRENT_EPOCH

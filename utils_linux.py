@@ -6,7 +6,6 @@ import numpy as np
 import logging
 from pykeyboard import PyKeyboardEvent
 import time
-
 # Global Varables:
 ROOT = '/run/media/why/OS/WHY/Why酱の工具箱/fgo/'
 ATK_SLEEP_TIME = 0.15
@@ -25,6 +24,7 @@ SKILL_SLEEP2 = 0.1
 SKILL_SLEEP3 = 0.25
 CLICK_BAR_SLEEP = 0.1
 EXTRA_SLEEP_UNIT = 0.02      # defalut 0.1
+
 
 
 # LOG:
