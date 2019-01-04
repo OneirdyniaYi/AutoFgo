@@ -30,8 +30,8 @@ ONE_APPLE_BATTLE = 3    # all AP // one battle AP cost. (type: int)
 FULL_SCREEN = False  # type: bool
 
 # ultimate skill list: (type: tuple, 0~2), set false to disable.
-# USED_ULTIMATE = (0, 1, 2,)
-USED_ULTIMATE = (2,)
+USED_ULTIMATE = (0, 1, 2,)
+#USED_ULTIMATE = (2,)
 
 # use servants' skill or not: (type: bool)
 USE_SKILL = True

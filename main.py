@@ -253,7 +253,8 @@ class Fgo(object):
         # postion of support servant tag.
         sup_tag_x = 0.4893
         sup_tag_y = 0.3944
-        self.click_act(0.7771, 0.9627, 0.3)
+        # click to hide the terminal:
+        self.click_act(0.2828, 0.7435, 0.3)
         # click the center of battle tag.
         # self.click_act(0.7252, 0.2740, 2)
         self.click_act(0.7252, 0.2740, 0)
@@ -290,7 +291,7 @@ class Fgo(object):
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]    # ski_y = 0.8009
         self.click_act(ski_x[skill_no], 0.8009, SKILL_SLEEP1)
         self.click_act(0.5, 0.5, SKILL_SLEEP2)
-        self.click_act(0.0521, 0.4259, SKILL_SLEEP3)
+        self.click_act(0.6900, 0.0800, SKILL_SLEEP3)
         # To see if skill is really used.
         beg = time.time()
         click_status = True
@@ -298,11 +299,11 @@ class Fgo(object):
             # to avoid clicking avator:
             if click_status and not int(time.time() - beg) % 0.5:
                 # time.sleep(0.5)
-                self.click_act(0.0521, 0.4259, 0)
+                self.click_act(0.6900, 0.0800, 0)
                 click_status = False
             if 8 > time.time() - beg > 6:
                 logging.warning('Click avator wrongly,auto-fixed.')
-                self.click_act(0.0521, 0.4259, 0.5)
+                self.click_act(0.6900, 0.0800, 0.5)
             if time.time() - beg > 8:
                 return -1
         return 1
@@ -517,7 +518,7 @@ class Fgo(object):
         if res == -1:
             for _ in range(3):
                 # the left position of screen:
-                self.click_act(0.0521, 0.4259, 1)
+                self.click_act(0.6900, 0.0800, 1)
                 logging.warning('Something wrong. Trying to fix it.')
             res = self._monitor(('atk', 'fufu', 'menu'), 50, 0, 20, True, True)
         if res != -1:
