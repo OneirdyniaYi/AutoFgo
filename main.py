@@ -42,11 +42,11 @@ Args.add_argument('--CheckPos', '-p', action='store_true',
                   help='To see the window-position, shoud be used with `--keep`.')
 Args.add_argument('--debug', '-d', action='store_true',
                   help='Enter DEBUG mode.')
-Args.add_argument('--shutdown', '-sd', action='store_true',
+Args.add_argument('--shutdown', '-S', action='store_true',
                   help='close the simulator after running.')
 Args.add_argument('--ContinueRun', '-c', action='store_true',
                   help='Continue running in a battle.')
-Args.add_argument('--locate', '-L', action='store_true',
+Args.add_argument('--locate', '-l', action='store_true',
                   help='Monitor cursor\'s  position.')
 OPT = Args.parse_args()
 # ===== Main Code: =====
@@ -158,7 +158,7 @@ class Fgo(object):
         # load sample imgs:
         self.LoadImg = {x: Image.open(
             ROOT + 'data/{}_sample.jpg'.format(x)) for x in self.area.keys()}
-        if not CONTINUE_RUN and not DEBUG:
+        if not CONTINUE_RUN and not DEBUG and not OPT.locate:
             if self._monitor('menu', 3, 0) == -1:
                 os._exit(0)
 
@@ -291,7 +291,7 @@ class Fgo(object):
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]    # ski_y = 0.8009
         self.click_act(ski_x[skill_no], 0.8009, SKILL_SLEEP1)
         self.click_act(0.5, 0.5, SKILL_SLEEP2)
-        self.click_act(0.6900, 0.0800, SKILL_SLEEP3)
+        self.click_act(0.6978, 0.0267, SKILL_SLEEP3)
         # To see if skill is really used.
         beg = time.time()
         click_status = True
@@ -299,11 +299,11 @@ class Fgo(object):
             # to avoid clicking avator:
             if click_status and not int(time.time() - beg) % 0.5:
                 # time.sleep(0.5)
-                self.click_act(0.6900, 0.0800, 0)
+                self.click_act(0.6978, 0.0267, 0)
                 click_status = False
             if 8 > time.time() - beg > 6:
                 logging.warning('Click avator wrongly,auto-fixed.')
-                self.click_act(0.6900, 0.0800, 0.5)
+                self.click_act(0.6978, 0.0267, 0.5)
             if time.time() - beg > 8:
                 return -1
         return 1
@@ -518,7 +518,7 @@ class Fgo(object):
         if res == -1:
             for _ in range(3):
                 # the left position of screen:
-                self.click_act(0.6900, 0.0800, 1)
+                self.click_act(0.6978, 0.0267, 1)
                 logging.warning('Something wrong. Trying to fix it.')
             res = self._monitor(('atk', 'fufu', 'menu'), 50, 0, 20, True, True)
         if res != -1:
@@ -614,7 +614,13 @@ class Fgo(object):
             time.sleep(0.1)
 
     def debug(self):
-        pass
+        # x1, y1, x2, y2 = self.area['atk']
+        # print(x1, y1, x2, y2)
+        # self.c.move_to(self._set(x1, y1))
+        # time.sleep(0.5)
+        # self.c.move_to(self._set(x2, y2))
+        self.use_skill(2)
+
 
 
 if __name__ == '__main__':
