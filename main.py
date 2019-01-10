@@ -17,6 +17,7 @@ from pykeyboard import PyKeyboard
 import numpy as np
 from PIL import Image
 from config import *
+from collections import Counter
 
 SYSTEM = sys.platform
 
@@ -274,14 +275,25 @@ class Fgo(object):
                 self.send_mail('Error')
                 raise RuntimeError('Can\'t get START_MISSION tag for 10s')
 
-    def get_skill_img(self, saveImg=False):
+
+    def get_skill_img(self, saveImg=True):
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
         ski_y = 0.8009
         skill_imgs = list(range(9))
         for i in USED_SKILL:
-            skill_imgs[i] = self.grab(
-                (ski_x[i]-0.0138, ski_y-0.0222, ski_x[i]+0.0138, ski_y))
+            N = 20
+            imgs = [self.grab((ski_x[i]-0.0138, ski_y-0.0222, ski_x[i]+0.0138, ski_y)) for _ in range(N)]
+            img = imgs[0]
+            max_count = imgs.count(imgs[0])
+            for x in imgs:
+                count = imgs.count(x)
+                if count > max_count:
+                    img = x
+                    max_count = count
+            # skill_imgs[i] = self.grab(
+            #     (ski_x[i]-0.0138, ski_y-0.0222, ski_x[i]+0.0138, ski_y))
+            skill_imgs[i] = img
             if saveImg:
                 skill_imgs[i].save('./debug/{}.png'.format(i))
         return skill_imgs
