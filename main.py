@@ -315,7 +315,7 @@ class Fgo(object):
         skill_imgs = list(range(9))
         for no in USED_SKILL:
             i = no - 1
-            if turn and turn - self.skill_used_turn[i] <= SKILL_MIN_CD:
+            if turn and turn - self.skill_used_turn[i] < SKILL_MIN_CD:
                 skill_imgs[i] = self.img['skills'][i]
                 continue
             N = 25
@@ -366,16 +366,17 @@ class Fgo(object):
         # snap_x = 0.0734
         if turn == 1:
             time.sleep(EXTRA_SLEEP_UNIT*10)
-            self.skill_used_turn = []
+            self.skill_used_turn = [None for _ in range(9)]
             for no in USED_SKILL:
                 self._use_one_skill(turn, no-1)
-                self.skill_used_turn.append(1)
+                self.skill_used_turn[no-1] = 1
             if Yili:
                 self._use_one_skill(turn, 6)
             time.sleep(EXTRA_SLEEP_UNIT*2)
             # first turn, get imgs of all skills
             self.img['skills'] = self.get_skill_img(turn = False)
         else:
+            print(self.skill_used_turn)
             time.sleep(EXTRA_SLEEP_UNIT*4)
             # only get imgs for skills that not in CD(now_turn - used_turn > min_CD):
             now_skill_img = self.get_skill_img(turn)
