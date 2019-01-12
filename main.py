@@ -17,6 +17,7 @@ from pykeyboard import PyKeyboard
 import numpy as np
 from PIL import Image
 from config import *
+from email_config import *
 # from collections import Counter
 
 SYSTEM = sys.platform
