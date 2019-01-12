@@ -14,4 +14,4 @@ INIT_POS*
 bak
 debug
 data
-./email_config.py
+email_config.py

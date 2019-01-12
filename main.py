@@ -104,7 +104,7 @@ def info(str):
 
 class Fgo(object):
     __slots__ = ('c', 'width', 'height', 'scr_pos1',
-                 'scr_pos2', 'area', 'img', 'LoadImg')
+                 'scr_pos2', 'area', 'img', 'LoadImg', 'skill_used_turn')
 
     def __init__(self, full_screen=True, sleep=True):
         # [init by yourself] put cursor at the down-right position of the game window.
@@ -307,13 +307,17 @@ class Fgo(object):
                 self.send_mail('Error')
                 raise RuntimeError('Can\'t get START_MISSION tag for 10s')
 
-    def get_skill_img(self, saveImg=True):
+    def get_skill_img(self, turn, saveImg=True):
+        # turn = False for get all imgs.
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
         ski_y = 0.8009
         skill_imgs = list(range(9))
         for no in USED_SKILL:
             i = no - 1
+            if turn and turn - self.skill_used_turn[i] <= SKILL_MIN_CD:
+                skill_imgs[i] = self.img['skills'][i]
+                continue
             N = 25
             imgs = [self.grab((ski_x[i]-0.0138, ski_y-0.0222,
                                ski_x[i]+0.0138, ski_y)) for _ in range(N)]
@@ -331,10 +335,10 @@ class Fgo(object):
                 skill_imgs[i].save('./debug/{}.png'.format(i))
         return skill_imgs
 
-    def _use_one_skill(self, skill_no):
+    def _use_one_skill(self, turn, skill_ix):
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]    # ski_y = 0.8009
-        self.click_act(ski_x[skill_no], 0.8009, SKILL_SLEEP1)
+        self.click_act(ski_x[skill_ix], 0.8009, SKILL_SLEEP1)
         self.click_act(0.5, 0.5, SKILL_SLEEP2)
         self.click_act(0.6978, 0.0267, SKILL_SLEEP3)
         # To see if skill is really used.
@@ -351,6 +355,9 @@ class Fgo(object):
                 self.click_act(0.6978, 0.0267, 0.5)
             if time.time() - beg > 8:
                 return -1
+        # atk disappeared for over 1s, using skill succes:
+        if time.time() - beg > 1:
+            self.skill_used_turn[skill_ix] = turn
         return 1
 
     def use_skill(self, turn):
@@ -359,24 +366,28 @@ class Fgo(object):
         # snap_x = 0.0734
         if turn == 1:
             time.sleep(EXTRA_SLEEP_UNIT*10)
+            self.skill_used_turn = []
             for no in USED_SKILL:
-                self._use_one_skill(no-1)
+                self._use_one_skill(turn, no-1)
+                self.skill_used_turn.append(1)
             if Yili:
-                self._use_one_skill(6)
+                self._use_one_skill(turn, 6)
             time.sleep(EXTRA_SLEEP_UNIT*2)
-            self.img['skills'] = self.get_skill_img()
+            # first turn, get imgs of all skills
+            self.img['skills'] = self.get_skill_img(turn = False)
         else:
             time.sleep(EXTRA_SLEEP_UNIT*4)
-            now_skill_img = self.get_skill_img()
+            # only get imgs for skills that not in CD(now_turn - used_turn > min_CD):
+            now_skill_img = self.get_skill_img(turn)
             if not(now_skill_img == self.img['skills']):
                 time.sleep(EXTRA_SLEEP_UNIT*10)
                 for no in USED_SKILL:
                     if not(now_skill_img[no-1] == self.img['skills'][no-1]):
-                        self._use_one_skill(no-1)
+                        self._use_one_skill(turn, no-1)
                 if Yili:
-                    self._use_one_skill(6)
+                    self._use_one_skill(turn, 6)
                 time.sleep(EXTRA_SLEEP_UNIT*2)
-                self.img['skills'] = self.get_skill_img()
+                self.img['skills'] = self.get_skill_img(turn=False)
 
     def _choose_card(self):
         # normal atk card position:
