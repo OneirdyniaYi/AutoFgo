@@ -13,5 +13,5 @@ tmp.png
 INIT_POS*
 bak
 debug
-email_config.py
 data
+./email_config.py
