@@ -52,12 +52,12 @@ CLICK_BREAK_TIME = 1
 SEND_MAIL = True
 SEND_MAIL = False if EPOCH < 5 or DEBUG else SEND_MAIL
 # address and password(not your real password, but a code used for SMTP login service.)
-FROM_ADDRESS = '344915973@qq.com'
+FROM_ADDRESS = 'your mail address'
 # PASSWD = 'kqddfbmxiipqcaeg'
 PASSWD = 'hqytohqljgnebhhg'
 
 # address you want to send mail to.
-TO_ADDRESS = '694029828@qq.com'
+TO_ADDRESS = 'another your mail address'
 
 # SMTP server address.
 SMTP_SERVER = 'smtp.qq.com'
