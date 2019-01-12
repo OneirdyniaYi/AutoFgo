@@ -17,7 +17,7 @@ from pykeyboard import PyKeyboard
 import numpy as np
 from PIL import Image
 from config import *
-from collections import Counter
+# from collections import Counter
 
 SYSTEM = sys.platform
 
@@ -34,6 +34,10 @@ PRE_BREAK_TIME = CLICK_BREAK_TIME
 Args = argparse.ArgumentParser()
 Args.add_argument('--epoch', '-e', type=int, help='Num of running battles.')
 Args.add_argument('--support', '-s', type=int, help='ID of support servent.')
+Args.add_argument('--skill', '-S', type=str,
+                  help='Skills you want to set. exmaple: `S+12345` for using 1~5, `S-123` for NOT using skill 1~3, `S-` for not using any skill, `S+` for using all skills.')
+Args.add_argument('--ultimate', '-u', type=str,
+                  help='Ultimate Skills you want to use. exmaple: `u12` for using 1~2, `u-` for NOT using anyone.')
 Args.add_argument('--order', '-o', type=int, choices=range(-3, 4), default=0,
                   help='Attacking orders. `n` for attacking `n`th enemy first; `-n` for attacking `n`th enemy first and others in reverse order; 0 for ignoring settings.')
 
@@ -43,7 +47,7 @@ Args.add_argument('--CheckPos', '-p', action='store_true',
                   help='To see the window-position, shoud be used with `--keep`.')
 Args.add_argument('--debug', '-d', action='store_true',
                   help='Enter DEBUG mode.')
-Args.add_argument('--shutdown', '-S', action='store_true',
+Args.add_argument('--shutdown', '-sd', action='store_true',
                   help='close the simulator after running.')
 Args.add_argument('--ContinueRun', '-c', action='store_true',
                   help='Continue running in a battle.')
@@ -54,7 +58,7 @@ OPT = Args.parse_args()
 
 
 def update_var():
-    global DEBUG, EPOCH, SUPPORT, SEND_MAIL, CONTINUE_RUN, KEEP_POSITION
+    global DEBUG, EPOCH, SUPPORT, SEND_MAIL, CONTINUE_RUN, KEEP_POSITION, USED_SKILL, USED_ULTIMATE
     DEBUG = OPT.debug if OPT.debug else DEBUG
     EPOCH = OPT.epoch if OPT.epoch else EPOCH
     SUPPORT = OPT.support if OPT.support else SUPPORT
@@ -65,6 +69,32 @@ def update_var():
         input(
             '\033[1;31m>>> Warning: Computer will shutdown after running. Continue?\033[0m')
     print('>>> Attention: You are in DEBUG Mode!' if DEBUG else '')
+    # Set USED_SKILL and USED_ULTIMATE:
+    if OPT.skill:
+        if OPT.skill[0] in ('+', '-'):
+            for x in OPT.skill[1:]:
+                if x not in '123456789':
+                    print('ERR: `Skill` args format error, try again.')
+                    os._exit(0)
+            if OPT.skill[1:] == '':
+                USED_SKILL = tuple(range(1, 10)) if OPT.skill[0] == '+' else ()
+            elif OPT.skill[0] == '+':
+                USED_SKILL = tuple([int(x) for x in OPT.skill[1:]])
+            else:
+                USED_SKILL = tuple({x for x in range(1, 10)} -
+                                   set([int(x) for x in OPT.skill[1:]]))
+        else:
+            print('ERR: `Skill` args format error, try again.')
+            os._exit(0)
+    if OPT.ultimate:
+        if OPT.ultimate == '-':
+            USED_ULTIMATE = ()
+        else:
+            for x in OPT.ultimate:
+                if x not in '123':
+                    print('ERR: `ultimate` args format error, try again.')
+                    os._exit(0)
+            USED_ULTIMATE = tuple([int(x) for x in OPT.ultimate])
 
 
 def info(str):
@@ -255,7 +285,8 @@ class Fgo(object):
         sup_tag_x = 0.4893
         sup_tag_y = 0.3944
         # click to hide the terminal:
-        self.click_act(0.2828, 0.7435, 0.3)
+        if CURRENT_EPOCH == 1:
+            self.click_act(0.2828, 0.7435, 0.3)
         # click the center of battle tag.
         # self.click_act(0.7252, 0.2740, 2)
         self.click_act(0.7252, 0.2740, 0)
@@ -275,15 +306,16 @@ class Fgo(object):
                 self.send_mail('Error')
                 raise RuntimeError('Can\'t get START_MISSION tag for 10s')
 
-
     def get_skill_img(self, saveImg=True):
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
         ski_y = 0.8009
         skill_imgs = list(range(9))
-        for i in USED_SKILL:
-            N = 20
-            imgs = [self.grab((ski_x[i]-0.0138, ski_y-0.0222, ski_x[i]+0.0138, ski_y)) for _ in range(N)]
+        for no in USED_SKILL:
+            i = no - 1
+            N = 25
+            imgs = [self.grab((ski_x[i]-0.0138, ski_y-0.0222,
+                               ski_x[i]+0.0138, ski_y)) for _ in range(N)]
             img = imgs[0]
             max_count = imgs.count(imgs[0])
             for x in imgs:
@@ -326,8 +358,8 @@ class Fgo(object):
         # snap_x = 0.0734
         if turn == 1:
             time.sleep(EXTRA_SLEEP_UNIT*10)
-            for i in USED_SKILL:
-                self._use_one_skill(i)
+            for no in USED_SKILL:
+                self._use_one_skill(no-1)
             if Yili:
                 self._use_one_skill(6)
             time.sleep(EXTRA_SLEEP_UNIT*2)
@@ -337,9 +369,9 @@ class Fgo(object):
             now_skill_img = self.get_skill_img()
             if not(now_skill_img == self.img['skills']):
                 time.sleep(EXTRA_SLEEP_UNIT*10)
-                for i in USED_SKILL:
-                    if not(now_skill_img[i] == self.img['skills'][i]):
-                        self._use_one_skill(i)
+                for no in USED_SKILL:
+                    if not(now_skill_img[no-1] == self.img['skills'][no-1]):
+                        self._use_one_skill(no-1)
                 if Yili:
                     self._use_one_skill(6)
                 time.sleep(EXTRA_SLEEP_UNIT*2)
@@ -375,6 +407,9 @@ class Fgo(object):
         # click attack icon:
         # time.sleep(EXTRA_SLEEP_UNIT*5)
         self.click_act(0.8823, 0.8444, 1)
+        if self._monitor('atk', 0.1, 0, EchoError=False) != -1:
+            logging.warn('Click ATK_Icon failed.')
+            self.click_act(0.8823, 0.8444, 1)
         # use normal atk card:
         atk_card_x = [0.1003+0.2007*x for x in range(5)]
         nearest3ix, min_sigma = self._choose_card()
@@ -399,7 +434,8 @@ class Fgo(object):
                 time.sleep(0.2)
                 ult_x = [0.3171, 0.5005, 0.6839]
                 for j in USED_ULTIMATE:
-                    self.click_act(ult_x[j], 0.2833, ULTIMATE_SLEEP)
+                    # j = 1, 2, 3
+                    self.click_act(ult_x[j-1], 0.2833, ULTIMATE_SLEEP)
         # To avoid `Can't use card` status:
         for _ in range(2):
             for i in range(5):
@@ -595,7 +631,7 @@ class Fgo(object):
     def run(self):
         beg = time.time()
         # if not self.img['AP_recover']:
-            # self.save_AP_recover_img()
+        # self.save_AP_recover_img()
         for j in range(EPOCH):
             print('\n ----- EPOCH{} START -----'.format(j+1))
             global CURRENT_EPOCH
@@ -614,25 +650,9 @@ class Fgo(object):
         if SEND_MAIL:
             self.send_mail('Done')
 
-    def debug_grab(self):
-        ori = self.grab((0, 0, 1, 1))
-        ori.save('./debug/ori.png')
-        while 1:
-            now = self.grab((0, 0, 1, 1))
-            now.save('./debug/now.png')
-            print('running...')
-            if not (now == ori):
-                break
-            time.sleep(0.1)
-
     def debug(self):
-        # x1, y1, x2, y2 = self.area['atk']
-        # print(x1, y1, x2, y2)
-        # self.c.move_to(self._set(x1, y1))
-        # time.sleep(0.5)
-        # self.c.move_to(self._set(x2, y2))
-        self.use_skill(2)
-
+        print(USED_SKILL)
+        print(USED_ULTIMATE)
 
 
 if __name__ == '__main__':

@@ -5,7 +5,6 @@ DEBUG = False       # type: bool
 CONTINUE_RUN = False    # for debug
 # 0 for last position, n for loading from file_n, False for skip:
 KEEP_POSITION = False
-Nero_MAX = False     # 尼禄祭！误触区域内有高难本
 Choose_item = False  # 万圣节！开始战斗前要选道具
 Yili = False        # 剑龙娘三技能：需要满AP使用
 # SAVE_IMG = True    # save sll imgs for next runnning.
@@ -21,7 +20,7 @@ Yili = False        # 剑龙娘三技能：需要满AP使用
 # 7. berserker
 # 8. special
 SUPPORT = 7     # default berserker := 7
-EPOCH = 6  # num of battles you want to run (type: int)
+EPOCH = 3  # num of battles you want to run (type: int)
 
 CLEAR_AP = False
 ONE_APPLE_BATTLE = 3    # all AP // one battle AP cost. (type: int)
@@ -29,22 +28,18 @@ ONE_APPLE_BATTLE = 3    # all AP // one battle AP cost. (type: int)
 # ======<User Setting>======= #
 FULL_SCREEN = False  # type: bool
 
-# ultimate skill list: (type: tuple, 0~2), set false to disable.
-USED_ULTIMATE = (0, 1, 2,)
-#USED_ULTIMATE = (2,)
+# ultimate skill list: (type: tuple, 1~3), set false to disable.
+USED_ULTIMATE = (1, 2, 3)
 
 # use servants' skill or not: (type: bool)
 USE_SKILL = True
 
-# skills list: (type: tuple, start from 0)
+# skills list: (type: tuple, start from 1)
 # reset the order of numbers to change skill orders.
-USED_SKILL = (0, 1, 2, 3, 4, 5, 6, 7, 8)
-#USED_SKILL = (0, )
+USED_SKILL = (1, 2, 3, 4, 5, 6, 7, 8, 9)
 
 # click to skip something:
 CLICK_BREAK_TIME = 1
-
-PAUSE_KEY = 'P'     # press shift+p to pause.
 
 # # use master's skill or not
 # USE_MASTER_SKILL = True
