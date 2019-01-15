@@ -294,7 +294,7 @@ class Fgo(object):
         self.use_apple()
         # choose support servent class icon:
         # time.sleep(EXTRA_SLEEP_UNIT*4)
-        self.click_act(0.0729+0.0527*supNo, 0.1796, 0.8)
+        self.click_act(0.0729+0.0527*supNo, 0.1796, 1)
         self.click_act(sup_tag_x, sup_tag_y, 1)
 
         if self._monitor('StartMission', 10, 0.3) != -1:
@@ -376,7 +376,7 @@ class Fgo(object):
             # first turn, get imgs of all skills
             self.img['skills'] = self.get_skill_img(turn = False)
         else:
-            print(self.skill_used_turn)
+            info('Skill CD: {}'.format([turn-x for x in self.skill_used_turn if type(x)==int]))
             time.sleep(EXTRA_SLEEP_UNIT*4)
             # only get imgs for skills that not in CD(now_turn - used_turn > min_CD):
             now_skill_img = self.get_skill_img(turn)
@@ -450,6 +450,7 @@ class Fgo(object):
                     # j = 1, 2, 3
                     self.click_act(ult_x[j-1], 0.2833, ULTIMATE_SLEEP)
         # To avoid `Can't use card` status:
+        time.sleep(1)
         for _ in range(2):
             for i in range(5):
                 self.click_act(atk_card_x[i], 0.7019, 0.2)
