@@ -46,5 +46,6 @@
 
 ### TODO
 
-- Use skill only per N turns (not every turm), N = min_CD_time
-- Add `USED_SKILL` and `ULTIMATE_SKILL` to argparse.
+- [x] Use skill only per N turns (not every turm), N = min_CD_time
+- [x] Add `USED_SKILL` and `ULTIMATE_SKILL` to argparse.
+- [] close the windows after running

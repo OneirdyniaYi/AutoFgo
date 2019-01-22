@@ -420,7 +420,7 @@ class Fgo(object):
         # click attack icon:
         # time.sleep(EXTRA_SLEEP_UNIT*5)
         self.click_act(0.8823, 0.8444, 1)
-        if self._monitor('atk', 0.1, 0, EchoError=False) != -1:
+        while self._monitor('atk', 0.1, 0, EchoError=False) != -1:
             logging.warn('Click ATK_Icon failed.')
             self.click_act(0.8823, 0.8444, 1)
         # use normal atk card:
