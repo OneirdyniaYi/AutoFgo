@@ -221,15 +221,13 @@ class Fgo(object):
     def _set(self, float_x, float_y):
         # input type: float
         # reurn the real position on the screen.
-        return int(self.scr_pos1[0]+self.width*float_x), int(self.scr_pos1[1]+self.height*float_y)
+        x = int(self.scr_pos1[0]+self.width*float_x)
+        y = int(self.scr_pos1[1]+self.height*float_y)
+        return x, y
 
-    def click_act(self, float_x, float_y, sleep_time):
+    def click(self, float_x, float_y, sleep_time):
         pos = self._set(float_x, float_y)
-        if SYSTEM == 'linux':
-            self.c.click(pos)
-        else:
-            self.c.move_to(pos)
-            self.c.click()
+        self.c.click(pos)
         time.sleep(sleep_time)
 
     def send_mail(self, status):
@@ -272,11 +270,11 @@ class Fgo(object):
     def _mission_start(self):
         # postion of `mission start` tag
         for _ in range(3):
-            self.click_act(0.9398, 0.9281, 1)
+            self.click(0.9398, 0.9281, 1)
         if Choose_item:
-            self.click_act(0.5, 0.2866, 0.5)
-            self.click_act(0.6478, 0.7819, 0.5)
-            # self.click_act(0.6469, 0.9131, 0.5)
+            self.click(0.5, 0.2866, 0.5)
+            self.click(0.6478, 0.7819, 0.5)
+            # self.click(0.6469, 0.9131, 0.5)
 
     def enter_battle(self, supNo=8):
         # [init by yourself] put the tag of battle at the top of screen.
@@ -284,22 +282,22 @@ class Fgo(object):
         sup_tag_x = 0.4893
         sup_tag_y = 0.3944
         # click to hide the terminal:
-        if CURRENT_EPOCH == 1:
-            self.click_act(0.2828, 0.7435, 0.3)
+        # if CURRENT_EPOCH == 1:
+        #     self.click(0.2828, 0.7435, 0.3)
         # click the center of battle tag.
-        # self.click_act(0.7252, 0.2740, 2)
-        self.click_act(0.7252, 0.2740, 0)
+        # self.click(0.7252, 0.2740, 2)
+        self.click(0.7252, 0.2740, 0)
         self.use_apple()
         # choose support servent class icon:
         # time.sleep(EXTRA_SLEEP_UNIT*4)
-        self.click_act(0.0729+0.0527*supNo, 0.1796, 1)
-        self.click_act(sup_tag_x, sup_tag_y, 1)
+        self.click(0.0729+0.0527*supNo, 0.1796, 1)
+        self.click(sup_tag_x, sup_tag_y, 1)
 
         if self._monitor('StartMission', 10, 0.3) != -1:
             self._mission_start()
             return 0
         else:
-            self.click_act(sup_tag_x, sup_tag_y, 1)
+            self.click(sup_tag_x, sup_tag_y, 1)
             if not(self._similar(self.grab(self.area['StartMission'], to_PIL=True)[0], self.img['StartMission'])):
                 logging.error('Can\'t get START_MISSION tag for 10s.')
                 self.send_mail('Error')
@@ -316,7 +314,7 @@ class Fgo(object):
             if turn and turn - self.skill_used_turn[i] < SKILL_MIN_CD:
                 skill_imgs[i] = self.img['skills'][i]
                 continue
-            N = 25
+            N = 25 if SYSTEM == 'linux' else 1
             imgs = [self.grab((ski_x[i]-0.0138, ski_y-0.0222,
                                ski_x[i]+0.0138, ski_y)) for _ in range(N)]
             img = imgs[0]
@@ -336,9 +334,9 @@ class Fgo(object):
     def _use_one_skill(self, turn, skill_ix):
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]    # ski_y = 0.8009
-        self.click_act(ski_x[skill_ix], 0.8009, SKILL_SLEEP1)
-        self.click_act(0.5, 0.5, SKILL_SLEEP2)
-        self.click_act(0.6978, 0.0267, SKILL_SLEEP3)
+        self.click(ski_x[skill_ix], 0.8009, SKILL_SLEEP1)
+        self.click(0.5, 0.5, SKILL_SLEEP2)
+        self.click(0.6978, 0.0267, SKILL_SLEEP3)
         # To see if skill is really used.
         beg = time.time()
         click_status = True
@@ -346,11 +344,11 @@ class Fgo(object):
             # to avoid clicking avator:
             if click_status and not int(time.time() - beg) % 0.5:
                 # time.sleep(0.5)
-                self.click_act(0.6978, 0.0267, 0)
+                self.click(0.6978, 0.0267, 0)
                 click_status = False
             if 8 > time.time() - beg > 6:
                 logging.warning('Click avator wrongly,auto-fixed.')
-                self.click_act(0.6978, 0.0267, 0.5)
+                self.click(0.6978, 0.0267, 0.5)
             if time.time() - beg > 8:
                 return -1
         # atk disappeared for over 1s, using skill succes:
@@ -417,16 +415,16 @@ class Fgo(object):
         info('Now start attacking....')
         # click attack icon:
         # time.sleep(EXTRA_SLEEP_UNIT*5)
-        self.click_act(0.8823, 0.8444, 1)
+        self.click(0.8823, 0.8444, 1)
         while self._monitor('atk', 0.1, 0, EchoError=False) != -1:
             logging.warn('Click ATK_Icon failed.')
-            self.click_act(0.8823, 0.8444, 1)
+            self.click(0.8823, 0.8444, 1)
         # use normal atk card:
         atk_card_x = [0.1003+0.2007*x for x in range(5)]
         nearest3ix, min_sigma = self._choose_card()
         sigmas = [min_sigma]
         ixs = [nearest3ix]
-        if min_sigma > 300:
+        if min_sigma > 300 and SYSTEM == 'linux':
             for _ in range(2):
                 nearest3ix, min_sigma = self._choose_card()
                 sigmas.append(min_sigma)
@@ -440,18 +438,18 @@ class Fgo(object):
             nearest3ix, min_sigma))
         time.sleep(EXTRA_SLEEP_UNIT*3)
         for i in range(3):
-            self.click_act(atk_card_x[nearest3ix[i]], 0.7019, ATK_SLEEP_TIME)
+            self.click(atk_card_x[nearest3ix[i]], 0.7019, ATK_SLEEP_TIME)
             if i == 0 and USED_ULTIMATE:
                 time.sleep(0.2)
                 ult_x = [0.3171, 0.5005, 0.6839]
                 for j in USED_ULTIMATE:
                     # j = 1, 2, 3
-                    self.click_act(ult_x[j-1], 0.2833, ULTIMATE_SLEEP)
+                    self.click(ult_x[j-1], 0.2833, ULTIMATE_SLEEP)
         # To avoid `Can't use card` status:
         for _ in range(3):
-            time.sleep(1)
             for i in range(5):
-                self.click_act(atk_card_x[i], 0.7019, 0.2)
+                self.click(atk_card_x[i], 0.7019, 0.2)
+            time.sleep(1)
         info('Card using over.')
 
     def _similar(self, img1, img2, bound=30):
@@ -525,7 +523,7 @@ class Fgo(object):
                 return -1
             # every unit time pass:
             if ClickToSkip and flag == int(CLICK_BREAK_TIME/0.1):
-                self.click_act(0.7771, 0.9627, 0)
+                self.click(0.7771, 0.9627, 0)
                 flag = 0
             flag += 1
             time.sleep(0.1)
@@ -569,7 +567,7 @@ class Fgo(object):
             # position: 0, 1, 2 from left to right.
             enemy_x = (0.1010, 0.3010, 0.4901)
             for ix in AtkOrder[OPT.order]:
-                self.click_act(enemy_x[ix], 0.0602, CLICK_BAR_SLEEP)
+                self.click(enemy_x[ix], 0.0602, CLICK_BAR_SLEEP)
         self.attack()
         time.sleep(1.5)
 
@@ -579,9 +577,9 @@ class Fgo(object):
         if res == -1:
             atk_card_x = [0.1003+0.2007*x for x in range(5)]
             for _ in range(3):
-                self.click_act(0.6978, 0.0267, 1)
+                self.click(0.6978, 0.0267, 1)
             for i in range(5):
-                self.click_act(atk_card_x[i], 0.7019, 0.2)
+                self.click(atk_card_x[i], 0.7019, 0.2)
             logging.warning('Something wrong. Trying to fix it.')
             res = self._monitor(('atk', 'fufu', 'menu'), 50, 0, 20, True, True)
         if res != -1:
@@ -623,10 +621,10 @@ class Fgo(object):
         if self._monitor('AP_recover', 1.5, 0.2, EchoError=False) != -1:
             logging.info('>>> Using apple...')
             # choose apple:
-            self.click_act(0.5, 0.4463, 0.7)
-            self.click_act(0.5, 0.6473, 0.7)
+            self.click(0.5, 0.4463, 0.7)
+            self.click(0.5, 0.6473, 0.7)
             # choose OK:
-            self.click_act(0.6563, 0.7824, 1)
+            self.click(0.6563, 0.7824, 1)
             logging.info('>>> Apple using over.')
             time.sleep(1.5)
             global EPOCH, CURRENT_EPOCH
@@ -637,11 +635,11 @@ class Fgo(object):
 
     def save_AP_recover_img(self):
         # choose AP bar:
-        self.click_act(0.1896, 0.9611, 1)
+        self.click(0.1896, 0.9611, 1)
         if self._monitor('AP_recover', 3, 0.2) == -1:
             os._exit(0)
         # click `exit`
-        self.click_act(0.5, 0.8630, 0.5)
+        self.click(0.5, 0.8630, 0.5)
 
     def run(self):
         beg = time.time()
@@ -666,8 +664,8 @@ class Fgo(object):
             self.send_mail('Done')
 
     def debug(self):
-        print(USED_SKILL)
-        print(USED_ULTIMATE)
+        self.grab((0, 0, 1, 1), 'win_test')
+        self.click(0.5, 0.5, 0)
 
 
 if __name__ == '__main__':

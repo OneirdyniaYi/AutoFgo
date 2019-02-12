@@ -39,8 +39,6 @@ USE_SKILL = True
 USED_SKILL = (1, 2, 3, 4, 5, 6, 7, 8, 9)
 SKILL_MIN_CD = 5
 
-# click to skip something:
-CLICK_BREAK_TIME = 1
 
 # # use master's skill or not
 # USE_MASTER_SKILL = True

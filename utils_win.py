@@ -6,7 +6,7 @@ from PIL import ImageGrab
 import logging
 
 # Global Varables:
-ROOT = '/run/media/why/OS/WHY/Why酱の工具箱/fgo/'
+ROOT = 'C:/WHY/Why酱の工具箱/fgo/'
 ATK_SLEEP_TIME = 0.1
 ULTIMATE_SLEEP = 0.2
 SKILL_SLEEP1 = 0.1
@@ -14,6 +14,8 @@ SKILL_SLEEP2 = 0.1
 SKILL_SLEEP3 = 0.2
 CLICK_BAR_SLEEP = 0.1
 EXTRA_SLEEP_UNIT = 0
+CLICK_BREAK_TIME = 0.5
+
 
 
 def ScreenShot(x1, y1, x2, y2, to_PIL=False, fname=None):
@@ -65,6 +67,7 @@ class Cursor(object):
         return win32api.GetCursorPos()
 
     def click(self, pos):
+        win32api.SetCursorPos(pos)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
 
