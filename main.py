@@ -303,7 +303,7 @@ class Fgo(object):
                 self.send_mail('Error')
                 raise RuntimeError('Can\'t get START_MISSION tag for 10s')
 
-    def get_skill_img(self, turn, saveImg=True):
+    def get_skill_img(self, turn, saveImg=False):
         # turn = False for get all imgs.
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
