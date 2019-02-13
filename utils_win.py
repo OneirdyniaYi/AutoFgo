@@ -7,19 +7,15 @@ import logging
 
 # Global Varables:
 ROOT = '/run/media/why/OS/WHY/Why酱の工具箱/fgo/'
-LOADING_WAIT_TIME = 3
 ATK_SLEEP_TIME = 0.1
+ULTIMATE_SLEEP = 0.2
 SKILL_SLEEP1 = 0.1
 SKILL_SLEEP2 = 0.1
 SKILL_SLEEP3 = 0.2
-ULTIMATE_SLEEP = 0.2
 CLICK_BAR_SLEEP = 0.1
 EXTRA_SLEEP_UNIT = 0
-WAIT_LOADING_SLEEP = 1      # sanp between loadings
 
 
-# in Windows, 2 kinds of grab method is the same.
-# THese strange settings is for match linux API.
 def ScreenShot(x1, y1, x2, y2, to_PIL=False, fname=None):
     im = ImageGrab.grab(bbox=(x1, y1, x2, y2))
     if fname:
@@ -27,17 +23,32 @@ def ScreenShot(x1, y1, x2, y2, to_PIL=False, fname=None):
     return (im, im) if to_PIL else im
 
 
+class SpecialFormatter(logging.Formatter):
+    base = '>> {}-%(asctime)s - %(message)s'
+    FORMATS = {logging.DEBUG: base.format('D'),
+               logging.ERROR: base.format('E'),
+               logging.INFO: base.format('I'),
+               logging.WARN: base.format('W')}
+
+    def format(self, record):
+        datefmt = '%H:%M:%S'
+        tmp_fmter = logging.Formatter(self.FORMATS.get(
+            record.levelno), datefmt=datefmt)
+        return tmp_fmter.format(record)
+
+
 def get_log():
-    fmt = '%(asctime)s:%(levelname)s - %(message)s'
-    # date_fmt_echo = '%m-%d %H:%M:%S'
-    date_fmt_file = '%H:%M'
-    logging.basicConfig(level=logging.DEBUG, format=fmt,
-                        datefmt=date_fmt_file, filename=ROOT + 'data/fgo.LOG', filemode='w')
+    # date_fmt = '%m-%d %H:%M:%S'
+    file_fmt = '> %(asctime)s:%(levelname)s - %(message)s'
+    file_date_fmt = '%H:%M'
+    logging.basicConfig(level=logging.INFO, format=file_fmt,
+                        datefmt=file_date_fmt, filename=ROOT + 'data/fgo.LOG', filemode='w')
+
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
     # if DEBUG:
     #     console.setLevel(logging.DEBUG)
-    console.setFormatter(logging.Formatter(fmt, datefmt=date_fmt_file))
+    console.setFormatter(SpecialFormatter())
     logging.getLogger().addHandler(console)
 
 

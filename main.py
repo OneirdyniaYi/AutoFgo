@@ -12,13 +12,11 @@ from email.header import Header
 from email.mime.multipart import MIMEBase, MIMEMultipart
 from email.mime.text import MIMEText
 from collections import Iterable
-from pykeyboard import PyKeyboard
 
 import numpy as np
 from PIL import Image
 from config import *
 from email_config import *
-# from collections import Counter
 
 SYSTEM = sys.platform
 
@@ -450,8 +448,8 @@ class Fgo(object):
                     # j = 1, 2, 3
                     self.click_act(ult_x[j-1], 0.2833, ULTIMATE_SLEEP)
         # To avoid `Can't use card` status:
-        time.sleep(1)
-        for _ in range(2):
+        for _ in range(3):
+            time.sleep(1)
             for i in range(5):
                 self.click_act(atk_card_x[i], 0.7019, 0.2)
         info('Card using over.')
@@ -482,6 +480,8 @@ class Fgo(object):
         - ClickToSkip: Click the screen to skip something.
         - EchoError: If printing error message when running out of time.
         '''
+        if SYSTEM != 'linux':
+            AllowPause = False
         names = (names, ) if len(names[0]) == 1 else names
         beg = time.time()
         pause_time = 0      # set for not calculating time for pause
@@ -533,8 +533,7 @@ class Fgo(object):
     def wait_loading(self):
         logging.info('<LOAD> - Now loading...')
         if CURRENT_EPOCH == 1:
-            if self._monitor('fufu', 15, 0.5, 30) == -1:
-                os._exit(0)
+            self._monitor('fufu', 30, 0.5, 50)
         if self._monitor('atk', 150, 0.5) == -1:
             os._exit(0)
         info('Finish loading, battle start.')
@@ -576,12 +575,14 @@ class Fgo(object):
 
         # Monitoring status change:
         info('Monitoring, no change got...')
-        res = self._monitor(('atk', 'fufu', 'menu'), 120, 0, 20, True, True)
+        res = self._monitor(('atk', 'fufu', 'menu'), 60, 0, 20, True, True)
         if res == -1:
+            atk_card_x = [0.1003+0.2007*x for x in range(5)]
             for _ in range(3):
-                # the left position of screen:
                 self.click_act(0.6978, 0.0267, 1)
-                logging.warning('Something wrong. Trying to fix it.')
+            for i in range(5):
+                self.click_act(atk_card_x[i], 0.7019, 0.2)
+            logging.warning('Something wrong. Trying to fix it.')
             res = self._monitor(('atk', 'fufu', 'menu'), 50, 0, 20, True, True)
         if res != -1:
             status = (atk, fufu, menu)[res]()
