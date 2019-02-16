@@ -290,6 +290,8 @@ class Fgo(object):
         self.use_apple()
         # choose support servent class icon:
         # time.sleep(EXTRA_SLEEP_UNIT*4)
+        if CURRENT_EPOCH == 1:
+            time.sleep(1.5)
         self.click(0.0729+0.0527*supNo, 0.1796, 1)
         self.click(sup_tag_x, sup_tag_y, 1)
 
