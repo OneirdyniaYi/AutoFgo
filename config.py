@@ -37,7 +37,7 @@ USE_SKILL = True
 # skills list: (type: tuple, start from 1)
 # reset the order of numbers to change skill orders.
 USED_SKILL = (1, 2, 3, 4, 5, 6, 7, 8, 9)
-SKILL_MIN_CD = 5
+SKILL_MIN_CD = 1
 
 
 # # use master's skill or not

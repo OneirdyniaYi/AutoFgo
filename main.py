@@ -290,12 +290,14 @@ class Fgo(object):
         self.use_apple()
         # choose support servent class icon:
         # time.sleep(EXTRA_SLEEP_UNIT*4)
-        if CURRENT_EPOCH == 1:
-            time.sleep(1.5)
+        # if CURRENT_EPOCH == 1:
+        #     time.sleep(1.5)
         self.click(0.0729+0.0527*supNo, 0.1796, 1)
         self.click(sup_tag_x, sup_tag_y, 1)
 
-        if self._monitor('StartMission', 10, 0.3) != -1:
+        # if self._monitor('StartMission', 10, 0.3) != -1:
+        if True:
+            time.sleep(1)
             self._mission_start()
             return 0
         else:
@@ -336,6 +338,7 @@ class Fgo(object):
     def _use_one_skill(self, turn, skill_ix):
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]    # ski_y = 0.8009
+        # if not (skill_ix == 7 and turn == 1):
         self.click(ski_x[skill_ix], 0.8009, SKILL_SLEEP1)
         self.click(0.5, 0.5, SKILL_SLEEP2)
         self.click(0.6978, 0.0267, SKILL_SLEEP3)
@@ -382,6 +385,8 @@ class Fgo(object):
                 time.sleep(EXTRA_SLEEP_UNIT*10)
                 for no in USED_SKILL:
                     if not(now_skill_img[no-1] == self.img['skills'][no-1]):
+                        self._use_one_skill(turn, no-1)
+                    if turn == 2 and no == 8:
                         self._use_one_skill(turn, no-1)
                 if Yili:
                     self._use_one_skill(turn, 6)
@@ -666,9 +671,9 @@ class Fgo(object):
             self.send_mail('Done')
 
     def debug(self):
-        self.grab((0, 0, 1, 1), 'win_test')
-        self.click(0.5, 0.5, 0)
-
+        while 1:
+            self.c.click(self.c.get_pos())
+            time.sleep(0.1)
 
 if __name__ == '__main__':
     # if debug for pyscreenshot, set level to `INFO`, can't run in `DEBUG` level.

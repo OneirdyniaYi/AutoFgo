@@ -6,9 +6,9 @@ from PIL import ImageGrab
 import logging
 
 # Global Varables:
-ROOT = 'C:/WHY/Why酱の工具箱/fgo/'
+ROOT = 'E:/why的程序测试/Fgo/'
 ATK_SLEEP_TIME = 0.1
-ULTIMATE_SLEEP = 0.2
+ULTIMATE_SLEEP = 0.1
 SKILL_SLEEP1 = 0.1
 SKILL_SLEEP2 = 0.1
 SKILL_SLEEP3 = 0.2
