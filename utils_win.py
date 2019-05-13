@@ -16,6 +16,7 @@ CLICK_BAR_SLEEP = 0.1
 EXTRA_SLEEP_UNIT = 0
 CLICK_BREAK_TIME = 0.5
 
+SCALE = 1
 
 
 def ScreenShot(x1, y1, x2, y2, to_PIL=False, fname=None):

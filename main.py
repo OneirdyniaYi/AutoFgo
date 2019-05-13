@@ -2,7 +2,6 @@
 # author: Why
 # version: 5.0
 import argparse
-# import logging
 import os
 import sys
 import smtplib
@@ -58,12 +57,12 @@ OPT = Args.parse_args()
 
 def update_var():
     global DEBUG, EPOCH, SUPPORT, SEND_MAIL, CONTINUE_RUN, KEEP_POSITION, USED_SKILL, USED_ULTIMATE
+    KEEP_POSITION = OPT.keep if OPT.keep != None else KEEP_POSITION
+    CONTINUE_RUN = True if OPT.ContinueRun else CONTINUE_RUN
+    SEND_MAIL = False if EPOCH < 5 or DEBUG else SEND_MAIL
+    SUPPORT = OPT.support if OPT.support else SUPPORT
     DEBUG = OPT.debug if OPT.debug else DEBUG
     EPOCH = OPT.epoch if OPT.epoch else EPOCH
-    SUPPORT = OPT.support if OPT.support else SUPPORT
-    CONTINUE_RUN = True if OPT.ContinueRun else CONTINUE_RUN
-    KEEP_POSITION = OPT.keep if OPT.keep != None else KEEP_POSITION
-    SEND_MAIL = False if EPOCH < 5 or DEBUG else SEND_MAIL
     if OPT.shutdown and SYSTEM == 'linux':
         input(
             '\033[1;31m>>> Warning: Computer will shutdown after running. Continue?\033[0m')
@@ -201,9 +200,9 @@ class Fgo(object):
         - to_PIL=False: Only set `True` when: on linux using `autopy` and need a PIL jpg image.
         '''
         float_x1, float_y1, float_x2, float_y2 = float_pos
-        # Windows error: 关闭屏幕缩放！关闭屏幕缩放！
-        x1, y1 = self._set(float_x1, float_y1)
-        x2, y2 = self._set(float_x2, float_y2)
+        # 开了屏幕缩放的话，记得传参scale！
+        x1, y1 = self._set(float_x1, float_y1, scale=SCALE)
+        x2, y2 = self._set(float_x2, float_y2,  scale=SCALE)
         return ScreenShot(x1, y1, x2, y2, to_PIL=to_PIL, fname=fname)
 
     def monitor_cursor_pos(self):
@@ -218,16 +217,22 @@ class Fgo(object):
             info('Float pos: {}, real: {}'.format(pos, self.c.get_pos()))
             time.sleep(0.5)
 
-    def _set(self, float_x, float_y):
-        # input type: float
-        # reurn the real position on the screen.
+    def _set(self, float_x, float_y, scale=False):
+        '''
+        float_x, float_y: float position on the WINDOW.
+        scale: scale factor, type: int, >1
+        reurn the real position on the screen.
+        '''
         x = int(self.scr_pos1[0]+self.width*float_x)
         y = int(self.scr_pos1[1]+self.height*float_y)
+        if scale:
+            x = int(x / scale)
+            y = int(y / scale)
         return x, y
 
     def click(self, float_x, float_y, sleep_time):
-        pos = self._set(float_x, float_y)
-        self.c.click(pos)
+        x, y = self._set(float_x, float_y, scale=False)
+        self.c.click((x, y))
         time.sleep(sleep_time)
 
     def send_mail(self, status):
@@ -284,6 +289,7 @@ class Fgo(object):
         # click to hide the terminal:
         # if CURRENT_EPOCH == 1:
         #     self.click(0.2828, 0.7435, 0.3)
+
         # click the center of battle tag.
         # self.click(0.7252, 0.2740, 2)
         self.click(0.7252, 0.2740, 0)
@@ -296,6 +302,7 @@ class Fgo(object):
         self.click(sup_tag_x, sup_tag_y, 1)
 
         # if self._monitor('StartMission', 10, 0.3) != -1:
+        # no screenshot bugs, change to:
         if True:
             time.sleep(1)
             self._mission_start()
@@ -318,7 +325,9 @@ class Fgo(object):
             if turn and turn - self.skill_used_turn[i] < SKILL_MIN_CD:
                 skill_imgs[i] = self.img['skills'][i]
                 continue
-            N = 25 if SYSTEM == 'linux' else 1
+            # N = 25 if SYSTEM == 'linux' else 1
+            # Screenshot bug has been fixed. 1 is enough.
+            N = 1
             imgs = [self.grab((ski_x[i]-0.0138, ski_y-0.0222,
                                ski_x[i]+0.0138, ski_y)) for _ in range(N)]
             img = imgs[0]
@@ -375,9 +384,10 @@ class Fgo(object):
                 self._use_one_skill(turn, 6)
             time.sleep(EXTRA_SLEEP_UNIT*2)
             # first turn, get imgs of all skills
-            self.img['skills'] = self.get_skill_img(turn = False)
+            self.img['skills'] = self.get_skill_img(turn=False)
         else:
-            info('Skill CD: {}'.format([turn-x for x in self.skill_used_turn if type(x)==int]))
+            info('Skill CD: {}'.format(
+                [turn-x for x in self.skill_used_turn if type(x) == int]))
             time.sleep(EXTRA_SLEEP_UNIT*4)
             # only get imgs for skills that not in CD(now_turn - used_turn > min_CD):
             now_skill_img = self.get_skill_img(turn)
@@ -465,22 +475,23 @@ class Fgo(object):
         c1 = np.array(img1).mean(axis=(0, 1))
         c2 = np.array(img2).mean(axis=(0, 1))
         d = np.linalg.norm(c1 - c2)
-        if DEBUG:
-            print('distance:', d)
+        # if DEBUG:
+        #     print('distance:', d)
         # d +0.0001 to avoid that d == 0
         return d+0.0001 if d < bound else False
 
     def _monitor(self, names, max_time, sleep, bound=30, AllowPause=False, ClickToSkip=False, EchoError=True):
         '''
-        used for monitor area change.
+        used for monitoring area change.
         When `self.pre_img[name]` is similar to now_img, save now img_bitmap as new img and return.
         If already saved, When `self.img[name]` == now_img, return value.
+
         Args:
         ------
         - names: tuple, choose from self.area.keys()
         - max_time: maxtime to wait for.
         - sleep: sleep time when use `_similar()` to judge. To avoid the situation: _similar(now, ori) == True but now != ori, because `now_img` is still in randering, they are similar but not the same.
-        - bound: if 2 imgs' RGB distance < bound, regard they are similar.
+        - bound: if 2 imgs' RGB distance < bound, they are similar.
         - AllowPause: if allow pausing during the loop.
         - ClickToSkip: Click the screen to skip something.
         - EchoError: If printing error message when running out of time.
@@ -500,6 +511,8 @@ class Fgo(object):
                 # First running for `name`:
                 if not self.img[name]:
                     now, now_bit = self.grab(self.area[name], to_PIL=True)
+
+                    now_bit.save('./debug/{}.png'.format(name))
                     d = self._similar(self.LoadImg[name], now, bound)
                     if d:
                         if sleep:
@@ -507,10 +520,10 @@ class Fgo(object):
                             self._monitor(name, 1.5, 0, bound)
                         else:
                             self.img[name] = now_bit
-                            # now_bit.save('./debug/{}.png'.format(name))
                             logging.info(
                                 'Got new img: {}, Distance: {:.4f}'.format(name, d))
                         return names.index(name)
+
                 # already have self.img[name]:
                 elif self.grab(self.area[name], to_PIL=False) == self.img[name]:
                     logging.info('{} Detected, Status change.'.format(name))
@@ -671,9 +684,12 @@ class Fgo(object):
             self.send_mail('Done')
 
     def debug(self):
-        while 1:
-            self.c.click(self.c.get_pos())
-            time.sleep(0.1)
+        # while 1:
+        #     self.c.click(self.c.get_pos())
+        #     time.sleep(0.1)
+        # self.run()
+        self.grab(self.area['menu'], 'menu_sample')
+
 
 if __name__ == '__main__':
     # if debug for pyscreenshot, set level to `INFO`, can't run in `DEBUG` level.

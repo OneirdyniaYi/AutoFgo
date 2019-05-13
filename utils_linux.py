@@ -7,7 +7,7 @@ import logging
 from pykeyboard import PyKeyboardEvent
 import time
 # Global Varables:
-ROOT = '/run/media/why/OS/WHY/Why酱の工具箱/fgo/'
+ROOT = '/media/why/OS/WHY/Why酱の工具箱/fgo/'
 
 # in low DPI:
 ATK_SLEEP_TIME = 0.1
@@ -19,6 +19,8 @@ CLICK_BAR_SLEEP = 0.1
 EXTRA_SLEEP_UNIT = 0.02      # defalut 0.1
 CLICK_BREAK_TIME = 1
 
+# scale increase factor of screen:
+SCALE = 1.4
 
 
 # LOG:

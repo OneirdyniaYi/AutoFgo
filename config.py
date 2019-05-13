@@ -4,7 +4,7 @@
 DEBUG = False       # type: bool
 CONTINUE_RUN = False    # for debug
 # 0 for last position, n for loading from file_n, False for skip:
-KEEP_POSITION = False
+KEEP_POSITION = 0
 Choose_item = False  # 万圣节！开始战斗前要选道具
 Yili = False        # 剑龙娘三技能：需要满AP使用
 # SAVE_IMG = True    # save sll imgs for next runnning.
