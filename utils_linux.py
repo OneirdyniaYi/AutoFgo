@@ -12,12 +12,12 @@ ROOT = '/media/why/OS/WHY/Why酱の工具箱/fgo/'
 # in low DPI:
 ATK_SLEEP_TIME = 0.1
 ULTIMATE_SLEEP = 0.2
-SKILL_SLEEP1 = 0.1
-SKILL_SLEEP2 = 0.1
-SKILL_SLEEP3 = 0.25
+SKILL_SLEEP1 = 0.15
+SKILL_SLEEP2 = 0.15
+SKILL_SLEEP3 = 0.4
 CLICK_BAR_SLEEP = 0.1
-EXTRA_SLEEP_UNIT = 0.02      # defalut 0.1
-CLICK_BREAK_TIME = 1
+EXTRA_SLEEP_UNIT = 0.05     # defalut 0.1
+CLICK_BREAK_TIME = 0.6
 
 # scale increase factor of screen:
 SCALE = 1.4

@@ -37,7 +37,7 @@ Args.add_argument('--skill', '-S', type=str,
 Args.add_argument('--ultimate', '-u', type=str,
                   help='Ultimate Skills you want to use. exmaple: `u12` for using 1~2, `u-` for NOT using anyone.')
 Args.add_argument('--order', '-o', type=int, choices=range(-3, 4), default=0,
-                  help='Attacking orders. `n` for attacking `n`th enemy first; `-n` for attacking `n`th enemy first and others in reverse order; 0 for ignoring settings.')
+                  help='Attacking orders. `n` for attacking `n`th enemy first; `-n` for attacking `n`th enemy first and others in reverse order; 0 for ignoring settings. 1, 2, 3 from RIGHT to LEFT.')
 
 Args.add_argument('--keep', '-k', type=int,
                   help='if 0: keep the window-position same as the last time; if n: load from file n')
@@ -453,7 +453,7 @@ class Fgo(object):
                 nearest3ix = ixs[sigmas.index(min_sigma)]
         logging.info('CardUse:{}, MinVar(RGB)={:.1f}.'.format(
             nearest3ix, min_sigma))
-        time.sleep(EXTRA_SLEEP_UNIT*3)
+        # time.sleep(EXTRA_SLEEP_UNIT*3)
         for i in range(3):
             self.click(atk_card_x[nearest3ix[i]], 0.7019, ATK_SLEEP_TIME)
             if i == 0 and USED_ULTIMATE:
@@ -463,7 +463,7 @@ class Fgo(object):
                     # j = 1, 2, 3
                     self.click(ult_x[j-1], 0.2833, ULTIMATE_SLEEP)
         # To avoid `Can't use card` status:
-        for _ in range(3):
+        for _ in range(1):
             for i in range(5):
                 self.click(atk_card_x[i], 0.7019, 0.2)
             time.sleep(1)
@@ -551,7 +551,7 @@ class Fgo(object):
     def wait_loading(self):
         logging.info('<LOAD> - Now loading...')
         if CURRENT_EPOCH == 1:
-            self._monitor('fufu', 30, 0.5, 50)
+            self._monitor('fufu', 30, 0.5, 10)
         if self._monitor('atk', 150, 0.5) == -1:
             os._exit(0)
         info('Finish loading, battle start.')
@@ -638,7 +638,7 @@ class Fgo(object):
 
     def use_apple(self):
         # if self.grab(self.area['AP_recover']) == self.img['AP_recover']:
-        if self._monitor('AP_recover', 1.5, 0.2, EchoError=False) != -1:
+        if self._monitor('AP_recover', 1.5, 0.2, EchoError=False, bound=15) != -1:
             logging.info('>>> Using apple...')
             # choose apple:
             self.click(0.5, 0.4463, 0.7)
