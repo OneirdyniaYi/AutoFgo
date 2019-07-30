@@ -11,6 +11,7 @@ from email.header import Header
 from email.mime.multipart import MIMEBase, MIMEMultipart
 from email.mime.text import MIMEText
 from collections import Iterable
+from ocrApi import img2str
 
 import numpy as np
 from PIL import Image
@@ -30,17 +31,30 @@ else:
 CURRENT_EPOCH = 0
 PRE_BREAK_TIME = CLICK_BREAK_TIME
 Args = argparse.ArgumentParser()
-Args.add_argument('--epoch', '-e', type=int, help='Num of running battles.')
-Args.add_argument('--support', '-s', type=int, help='ID of support servent.')
-Args.add_argument('--skill', '-S', type=str,
-                  help='Skills you want to set. exmaple: `S+12345` for using 1~5, `S-123` for NOT using skill 1~3, `S-` for not using any skill, `S+` for using all skills.')
-Args.add_argument('--ultimate', '-u', type=str,
+Args.add_argument('--epoch', '-e', type=int, default=3,
+                  help='Num of running battles.')
+
+Args.add_argument('--support', '-s', type=str, default='7',
+                  help='ID or name (e.g. `sab` for saber, program will AutoComplete the name) of support servent. ServentID: 0. all,  1. saber,  2. archer,  3. lancer,  4. rider,  5. caster,  6. assassin,  7. berserker,  8. special')
+
+Args.add_argument('--skill', '-S', type=str, default='+',
+                  help='Skills you want to set. e.g: `S+12345` for only using 1~5, `S-123` for only NOT using skill 1~3, `S-` for not using any skill, `S+` for using all skills.')
+
+Args.add_argument('--ultimate', '-u', type=str, default='123',
                   help='Ultimate Skills you want to use. exmaple: `u12` for using 1~2, `u-` for NOT using anyone.')
+
 Args.add_argument('--order', '-o', type=int, choices=range(-3, 4), default=0,
                   help='Attacking orders. `n` for attacking `n`th enemy first; `-n` for attacking `n`th enemy first and others in reverse order; 0 for ignoring settings. 1, 2, 3 from RIGHT to LEFT.')
 
 Args.add_argument('--keep', '-k', type=int,
                   help='if 0: keep the window-position same as the last time; if n: load from file n')
+
+Args.add_argument('--clearAP', '-C', type=int, default=0,
+                  help='If clear all AP. -Cn to represent: One apple can run n battles. for example, full AP = 125, AP cost by one battle = 40, then n = 3. set 0 for not clearing AP.')
+
+Args.add_argument('--OCR', '-O', action='store_true',
+                  help='If using OCR to help attacking. Better to use this in difficult battle.')
+
 Args.add_argument('--CheckPos', '-p', action='store_true',
                   help='To see the window-position, shoud be used with `--keep`.')
 Args.add_argument('--debug', '-d', action='store_true',
@@ -52,22 +66,21 @@ Args.add_argument('--ContinueRun', '-c', action='store_true',
 Args.add_argument('--locate', '-l', action='store_true',
                   help='Monitor cursor\'s  position.')
 OPT = Args.parse_args()
+
+
+# ===== Global varibles: =====
+KEEP_POSITION = OPT.keep if OPT.keep != None else False
+SEND_MAIL = False if OPT.epoch < 5 or OPT.debug else True
+
+
 # ===== Main Code: =====
-
-
 def update_var():
-    global DEBUG, EPOCH, SUPPORT, SEND_MAIL, CONTINUE_RUN, KEEP_POSITION, USED_SKILL, USED_ULTIMATE
-    KEEP_POSITION = OPT.keep if OPT.keep != None else KEEP_POSITION
-    CONTINUE_RUN = True if OPT.ContinueRun else CONTINUE_RUN
-    SEND_MAIL = False if EPOCH < 5 or DEBUG else SEND_MAIL
-    SUPPORT = OPT.support if OPT.support else SUPPORT
-    DEBUG = OPT.debug if OPT.debug else DEBUG
-    EPOCH = OPT.epoch if OPT.epoch else EPOCH
     if OPT.shutdown and SYSTEM == 'linux':
         input(
             '\033[1;31m>>> Warning: Computer will shutdown after running. Continue?\033[0m')
-    print('>>> Attention: You are in DEBUG Mode!' if DEBUG else '')
-    # Set USED_SKILL and USED_ULTIMATE:
+    print('>>> Attention: You are in DEBUG Mode!' if OPT.debug else '')
+
+    # Parse OPT.skill and OPT.ultimate:
     if OPT.skill:
         if OPT.skill[0] in ('+', '-'):
             for x in OPT.skill[1:]:
@@ -75,28 +88,45 @@ def update_var():
                     print('ERR: `Skill` args format error, try again.')
                     os._exit(0)
             if OPT.skill[1:] == '':
-                USED_SKILL = tuple(range(1, 10)) if OPT.skill[0] == '+' else ()
+                OPT.skill = tuple(range(1, 10)) if OPT.skill[0] == '+' else ()
             elif OPT.skill[0] == '+':
-                USED_SKILL = tuple([int(x) for x in OPT.skill[1:]])
+                OPT.skill = tuple([int(x) for x in OPT.skill[1:]])
             else:
-                USED_SKILL = tuple({x for x in range(1, 10)} -
-                                   set([int(x) for x in OPT.skill[1:]]))
+                OPT.skill = tuple({x for x in range(1, 10)} -
+                                  set([int(x) for x in OPT.skill[1:]]))
         else:
             print('ERR: `Skill` args format error, try again.')
             os._exit(0)
     if OPT.ultimate:
         if OPT.ultimate == '-':
-            USED_ULTIMATE = ()
+            OPT.ultimate = ()
         else:
             for x in OPT.ultimate:
                 if x not in '123':
                     print('ERR: `ultimate` args format error, try again.')
                     os._exit(0)
-            USED_ULTIMATE = tuple([int(x) for x in OPT.ultimate])
+            OPT.ultimate = tuple([int(x) for x in OPT.ultimate])
+
+    # Parse OPT.support:
+    try:
+        OPT.support = int(OPT.support)
+        if OPT.support not in tuple(range(9)):
+            print('ERR: `SUPPORT` args format error, try again.')
+            os._exit(0)
+    except:
+        supportID = ('all', 'saber', 'archer', 'lancer', 'rider',
+                     'caster', 'assassin', 'berserker', 'special')
+
+        res = [OPT.support in x for x in supportID]
+        if res.count(True) != 1:
+            print('ERR: `SUPPORT` args format error, try again.')
+            os._exit(0)
+        else:
+            OPT.support = res.index(True)
 
 
 def info(str):
-    logging.info('<E{}/{}> - {}'.format(CURRENT_EPOCH, EPOCH, str))
+    logging.info('<E{}/{}> - {}'.format(CURRENT_EPOCH, OPT.epoch, str))
 
 
 class Fgo(object):
@@ -187,7 +217,7 @@ class Fgo(object):
         # load sample imgs:
         self.LoadImg = {x: Image.open(
             ROOT + 'data/{}_sample.jpg'.format(x)) for x in self.area.keys()}
-        if not CONTINUE_RUN and not DEBUG and not OPT.locate:
+        if not OPT.ContinueRun and not OPT.debug and not OPT.locate:
             if self._monitor('menu', 3, 0) == -1:
                 os._exit(0)
 
@@ -320,7 +350,7 @@ class Fgo(object):
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
         ski_y = 0.8009
         skill_imgs = list(range(9))
-        for no in USED_SKILL:
+        for no in OPT.skill:
             i = no - 1
             if turn and turn - self.skill_used_turn[i] < SKILL_MIN_CD:
                 skill_imgs[i] = self.img['skills'][i]
@@ -377,7 +407,7 @@ class Fgo(object):
         if turn == 1:
             time.sleep(EXTRA_SLEEP_UNIT*10)
             self.skill_used_turn = [None for _ in range(9)]
-            for no in USED_SKILL:
+            for no in OPT.skill:
                 self._use_one_skill(turn, no-1)
                 self.skill_used_turn[no-1] = 1
             if Yili:
@@ -393,7 +423,7 @@ class Fgo(object):
             now_skill_img = self.get_skill_img(turn)
             if not(now_skill_img == self.img['skills']):
                 time.sleep(EXTRA_SLEEP_UNIT*10)
-                for no in USED_SKILL:
+                for no in OPT.skill:
                     if not(now_skill_img[no-1] == self.img['skills'][no-1]):
                         self._use_one_skill(turn, no-1)
                     if turn == 2 and no == 8:
@@ -429,6 +459,15 @@ class Fgo(object):
         return tuple(nearest3RGB), min_sigma
 
     def attack(self):
+        if OPT.OCR:
+            try:
+                enemyHP, ourHP = self.ocrHP()
+            except:
+                logging.error('OCR failed, please check images in `./data`')
+            else:
+                if enemyHP < 50000 and ourHP > 24000:
+                    OPT.ultimate = ()
+
         info('Now start attacking....')
         # click attack icon:
         # time.sleep(EXTRA_SLEEP_UNIT*5)
@@ -456,10 +495,10 @@ class Fgo(object):
         # time.sleep(EXTRA_SLEEP_UNIT*3)
         for i in range(3):
             self.click(atk_card_x[nearest3ix[i]], 0.7019, ATK_SLEEP_TIME)
-            if i == 0 and USED_ULTIMATE:
+            if i == 0 and OPT.ultimate:
                 time.sleep(0.2)
                 ult_x = [0.3171, 0.5005, 0.6839]
-                for j in USED_ULTIMATE:
+                for j in OPT.ultimate:
                     # j = 1, 2, 3
                     self.click(ult_x[j-1], 0.2833, ULTIMATE_SLEEP)
         # To avoid `Can't use card` status:
@@ -475,7 +514,7 @@ class Fgo(object):
         c1 = np.array(img1).mean(axis=(0, 1))
         c2 = np.array(img2).mean(axis=(0, 1))
         d = np.linalg.norm(c1 - c2)
-        # if DEBUG:
+        # if OPT.debug:
         #     print('distance:', d)
         # d +0.0001 to avoid that d == 0
         return d+0.0001 if d < bound else False
@@ -616,7 +655,7 @@ class Fgo(object):
 
     def one_battle(self, go_on=False):
         if not go_on:
-            self.enter_battle(SUPPORT)
+            self.enter_battle(OPT.support)
             # wait for going into loading page:
             self.wait_loading()
         # ContinueRun:
@@ -647,11 +686,13 @@ class Fgo(object):
             self.click(0.6563, 0.7824, 1)
             logging.info('>>> Apple using over.')
             time.sleep(1.5)
-            global EPOCH, CURRENT_EPOCH
-            if EPOCH - CURRENT_EPOCH < ONE_APPLE_BATTLE - 1 and CLEAR_AP:
-                EPOCH = CURRENT_EPOCH + ONE_APPLE_BATTLE - 1
+            global CURRENT_EPOCH
+
+            one_apple_battle_num = OPT.clearAP  # go to see `OPT.clearAP` help msg
+            if OPT.epoch - CURRENT_EPOCH < one_apple_battle_num - 1 and OPT.clearAP:
+                OPT.epoch = CURRENT_EPOCH + one_apple_battle_num - 1
                 logging.info(
-                    'Auto change EPOCH to {} to use all AP.'.format(EPOCH))
+                    'Auto change EPOCH to {} to use all AP.'.format(OPT.epoch))
 
     def save_AP_recover_img(self):
         # choose AP bar:
@@ -661,11 +702,42 @@ class Fgo(object):
         # click `exit`
         self.click(0.5, 0.8630, 0.5)
 
+    def ocrHP(self):
+        '''
+        monitor HP of enemy and servent, using BaiduOCR API.
+        '''
+        enemy_x = (0.0852, 0.2756, 0.4654)
+        our_x = (0.1545, 0.4015, 0.65)
+        enemy_y = 0.04
+        our_y = 0.85
+
+        w = 0.1
+        h = 0.055
+
+        enemyHP = 0
+        ourHP = 0
+        for i in range(3):
+            def getHP(i, x, y, name):
+                self.grab((x, y, x + w, y+h), f'{name}HP_{i}')
+                res = img2str(
+                    ROOT + f'data/{name}HP_{i}.png').replace(',', '').replace('.', '')
+                return int(res) if res != '' else 0
+
+            hp1 = getHP(i, enemy_x[i], enemy_y, 'enemy')
+            hp2 = getHP(i, our_x[i], our_y, 'our')
+
+            enemyHP += hp1
+            ourHP += hp2
+            info(f'OCR [{i+1}] enemyHP: {hp1}, ourHP: {hp2}.')
+
+        info(f'OCR [all] enemyHP: {enemyHP}, ourHP: {ourHP} on total.')
+        return enemyHP, ourHP
+
     def run(self):
         beg = time.time()
         # if not self.img['AP_recover']:
         # self.save_AP_recover_img()
-        for j in range(EPOCH):
+        for j in range(OPT.epoch):
             print('\n ----- EPOCH{} START -----'.format(j+1))
             global CURRENT_EPOCH
             CURRENT_EPOCH += 1
@@ -673,7 +745,7 @@ class Fgo(object):
             time.sleep(0.5)
         end = time.time()
         logging.info('Total time: {:.1f}(min), <{:.1f}(min) on avarage.>'.format(
-            (end-beg)/60, (end-beg)/(60*EPOCH)))
+            (end-beg)/60, (end-beg)/(60*OPT.epoch)))
         if OPT.shutdown and SYSTEM == 'linux':
             # k = PyKeyboard()
             # k.press_keys(['Control_L', 'Delete'])
@@ -688,7 +760,8 @@ class Fgo(object):
         #     self.c.click(self.c.get_pos())
         #     time.sleep(0.1)
         # self.run()
-        self.grab(self.area['menu'], 'menu_sample')
+        # self.grab(self.area['menu'], 'menu_sample')
+        self.ocrHP()
 
 
 if __name__ == '__main__':
@@ -696,11 +769,11 @@ if __name__ == '__main__':
     update_var()
     get_log()
     fgo = Fgo(full_screen=FULL_SCREEN, sleep=False)
-    if DEBUG:
+    if OPT.debug:
         fgo.debug()
     elif OPT.locate:
         fgo.monitor_cursor_pos()
-    elif CONTINUE_RUN:
+    elif OPT.ContinueRun:
         fgo.one_battle(go_on=True)
     else:
         fgo.run()

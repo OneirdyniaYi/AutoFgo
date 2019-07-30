@@ -158,17 +158,17 @@ class KeyEventListener(PyKeyboardEvent):
 #     print(np.array(pic, dtype=np.uint8).mean(axis=(0, 1)))
 
 if __name__ == '__main__':
-    # get_wallpaper_RGB()
-    c = KeyEventListener()
-    c.start()
-    # print('start')
-    # time.sleep(2)
-    # c.stop()
-    while 1:
-        if (KeyEventListener.PAUSE):
-            res = input('pause')
-            res = input('pause')
-            KeyEventListener.PAUSE = False
-        print('running')
-        time.sleep(1)
+    # # get_wallpaper_RGB()
+    # c = KeyEventListener()
+    # c.start()
+    # # print('start')
+    # # time.sleep(2)
+    # # c.stop()
+    # while 1:
+    #     if (KeyEventListener.PAUSE):
+    #         res = input('pause')
+    #         res = input('pause')
+    #         KeyEventListener.PAUSE = False
+    #     print('running')
+    #     time.sleep(1)
     pass
