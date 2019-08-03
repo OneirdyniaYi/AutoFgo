@@ -203,7 +203,8 @@ class Fgo(object):
             'AP_recover': (0.2511, 0.177, 0.2907, 0.2464),
             # 'support': (0.6257, 0.1558, 0.6803, 0.1997),
             'atk': (0.8708, 0.7556, 0.8979, 0.8009),
-            'fufu': (0.4611, 0.9694, 0.4731, 0.9907)
+            # 'fufu': (0.4611, 0.9694, 0.4731, 0.9907)
+            'fufu': (0.5088, 0.8926, 0.53, 0.999)
         }
         self.img = {
             'menu': None,
@@ -225,10 +226,13 @@ class Fgo(object):
         '''
         Args:
         ------
-        - float_pos: position tuple of target area, should be floats from 0~1.
+        - float_pos: position tuple of target area, should be floats from 0~1, or name in `self.area`
         - fname=None: file name to save.
         - to_PIL=False: Only set `True` when: on linux using `autopy` and need a PIL jpg image.
         '''
+        if type(float_pos) == str:
+            float_pos = self.area[float_pos]
+
         float_x1, float_y1, float_x2, float_y2 = float_pos
         # 开了屏幕缩放的话，记得传参scale！
         x1, y1 = self._set(float_x1, float_y1, scale=SCALE)
@@ -306,10 +310,13 @@ class Fgo(object):
         # postion of `mission start` tag
         for _ in range(3):
             self.click(0.9398, 0.9281, 1)
-        if Choose_item:
-            self.click(0.5, 0.2866, 0.5)
-            self.click(0.6478, 0.7819, 0.5)
-            # self.click(0.6469, 0.9131, 0.5)
+        if CHOOSE_ITEM:
+            # using the first item:
+            # self.click(0.5, 0.2866, 0.5)
+            # self.click(0.6478, 0.7819, 0.5)
+
+            # not using item:
+            self.click(0.6469, 0.9131, 0.5)
 
     def enter_battle(self, supNo=8):
         # [init by yourself] put the tag of battle at the top of screen.
@@ -410,7 +417,7 @@ class Fgo(object):
             for no in OPT.skill:
                 self._use_one_skill(turn, no-1)
                 self.skill_used_turn[no-1] = 1
-            if Yili:
+            if YILI:
                 self._use_one_skill(turn, 6)
             time.sleep(EXTRA_SLEEP_UNIT*2)
             # first turn, get imgs of all skills
@@ -428,7 +435,7 @@ class Fgo(object):
                         self._use_one_skill(turn, no-1)
                     if turn == 2 and no == 8:
                         self._use_one_skill(turn, no-1)
-                if Yili:
+                if YILI:
                     self._use_one_skill(turn, 6)
                 time.sleep(EXTRA_SLEEP_UNIT*2)
                 self.img['skills'] = self.get_skill_img(turn=False)
@@ -515,7 +522,8 @@ class Fgo(object):
         c2 = np.array(img2).mean(axis=(0, 1))
         d = np.linalg.norm(c1 - c2)
         # if OPT.debug:
-        #     print('distance:', d)
+            
+        # info(f'distance: {d}')
         # d +0.0001 to avoid that d == 0
         return d+0.0001 if d < bound else False
 
@@ -590,7 +598,12 @@ class Fgo(object):
     def wait_loading(self):
         logging.info('<LOAD> - Now loading...')
         if CURRENT_EPOCH == 1:
-            self._monitor('fufu', 30, 0.5, 10)
+            if FUFU_NOT_DETECTED:
+                time.sleep(10)
+                self.img['fufu'] = self.grab('fufu')
+                info('ATTENTION: Now saved sample for `fufu` since monitor failed.')
+            else:
+                self._monitor('fufu', 30, 0.5, 10)
         if self._monitor('atk', 150, 0.5) == -1:
             os._exit(0)
         info('Finish loading, battle start.')
@@ -720,7 +733,7 @@ class Fgo(object):
             def getHP(i, x, y, name):
                 self.grab((x, y, x + w, y+h), f'{name}HP_{i}')
                 res = img2str(
-                    ROOT + f'data/{name}HP_{i}.png').replace(',', '').replace('.', '')
+                    ROOT + f'debug/{name}HP_{i}.png').replace(',', '').replace('.', '')
                 return int(res) if res != '' else 0
 
             hp1 = getHP(i, enemy_x[i], enemy_y, 'enemy')
@@ -760,8 +773,8 @@ class Fgo(object):
         #     self.c.click(self.c.get_pos())
         #     time.sleep(0.1)
         # self.run()
-        # self.grab(self.area['menu'], 'menu_sample')
-        self.ocrHP()
+        self.grab(self.area['fufu'], 'fufu_sample')
+        # self.ocrHP()
 
 
 if __name__ == '__main__':
