@@ -6,6 +6,7 @@ import numpy as np
 import logging
 from pykeyboard import PyKeyboardEvent
 import time
+import autopy
 # Global Varables:
 ROOT = '/media/why/OS/WHY/Why酱の工具箱/fgo/'
 
@@ -20,7 +21,7 @@ EXTRA_SLEEP_UNIT = 0.05     # defalut 0.1
 CLICK_BREAK_TIME = 0.6
 
 # scale increase factor of screen:
-SCALE = 1.4
+SCALE = 1.5
 
 
 # LOG:
@@ -36,7 +37,6 @@ SCALE = 1.4
 
 
 def ScreenShot(x1, y1, x2, y2, to_PIL=False, fname=None):
-    import autopy
     # print(x1, y1, x2, y2, 'size:', x2-x1, y2-y1)
     im = autopy.bitmap.capture_screen(((x1, y1), (x2-x1, y2-y1)))
     if fname:

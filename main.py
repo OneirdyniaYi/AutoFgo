@@ -53,7 +53,7 @@ Args.add_argument('--clearAP', '-C', type=int, default=0,
                   help='If clear all AP. -Cn to represent: One apple can run n battles. for example, full AP = 125, AP cost by one battle = 40, then n = 3. set 0 for not clearing AP.')
 
 Args.add_argument('--OCR', '-O', action='store_true',
-                  help='If using OCR to help attacking. Better to use this in difficult battle.')
+                  help='If using OCR to help attacking. I recommend you use it in difficult battles.')
 
 Args.add_argument('--CheckPos', '-p', action='store_true',
                   help='To see the window-position, shoud be used with `--keep`.')

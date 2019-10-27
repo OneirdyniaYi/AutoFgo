@@ -202,7 +202,7 @@ class Arknights(object):
                     os._exit(0)
                 
         info('编队结束，行动小队正在前往战场...')
-        for _ in range(3):
+        for _ in range(6):
             self.click(*mission_start_pos, 1)
         info('战斗开始，代理指挥PRTS控制中.')
 
