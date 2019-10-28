@@ -5,6 +5,7 @@ import argparse
 import os
 import sys
 import smtplib
+import string
 import time
 from email import encoders
 from email.header import Header
@@ -129,13 +130,22 @@ def info(str):
     logging.info('<E{}/{}> - {}'.format(CURRENT_EPOCH, OPT.epoch, str))
 
 
-class Fgo(object):
+class DigitFinder:
+    def __init__(self, keep=string.digits):
+        self.comp = dict((ord(c), c) for c in keep)
+
+    def __getitem__(self, k):
+        return self.comp.get(k)
+
+
+class Fgo:
     __slots__ = ('c', 'width', 'height', 'scr_pos1',
-                 'scr_pos2', 'area', 'img', 'LoadImg', 'skill_used_turn')
+                 'scr_pos2', 'area', 'img', 'LoadImg', 'skill_used_turn', 'digitFinder')
 
     def __init__(self, full_screen=True, sleep=True):
         # [init by yourself] put cursor at the down-right position of the game window.
         self.c = Cursor(init_pos=False)
+        self.digitFinder = DigitFinder()
         if full_screen:
             self.width, self.height = self.c.get_screen_wh()
             self.scr_pos1 = (0, 0)
@@ -274,8 +284,7 @@ class Fgo(object):
         self.grab((0, 0, 1, 1), 'final_shot')
         with open(ROOT + 'data/fgo.LOG', 'r') as f:
             res = f.readlines()
-            res = [x.replace('<', '&lt;') for x in res]
-            res = [x.replace('>', '&gt;') for x in res]
+            res = [x.replace('<', '&lt;').replace('>', '&gt;') for x in res]
             res = ''.join([x[:-1]+'<br />' for x in res])
         msg = MIMEMultipart()
         with open(ROOT + 'data/final_shot.png', 'rb') as f:
@@ -291,9 +300,9 @@ class Fgo(object):
         msg.attach(MIMEText('<html><body><p><img src="cid:0"></p>' +
                             '<font size=\"1\">{}</font>'.format(res) +
                             '</body></html>', 'html', 'utf-8'))
-        msg['From'] = Header('why酱的FGO脚本', 'utf-8')
-        msg['Subject'] = Header('<FGO {}> Running Stop <STATUS:{}>'.format(
-            time.strftime('%m-%d|%H:%M'), status), 'utf-8')
+        msg['From'] = Header('why酱のFGO脚本', 'utf-8')
+        msg['Subject'] = Header(
+            '[FGO] - Status: {}, {}'.format(status, time.strftime('%m-%d%H:%M')), 'utf-8')
         server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
         try:
             server.ehlo()
@@ -469,7 +478,8 @@ class Fgo(object):
         if OPT.OCR:
             try:
                 enemyHP, ourHP = self.ocrHP()
-            except:
+            except Exception as e:
+                print(e)
                 logging.error('OCR failed, please check images in `./data`')
             else:
                 if enemyHP < 50000 and ourHP > 24000:
@@ -480,7 +490,7 @@ class Fgo(object):
         # time.sleep(EXTRA_SLEEP_UNIT*5)
         self.click(0.8823, 0.8444, 1)
         while self._monitor('atk', 0.1, 0, EchoError=False) != -1:
-            logging.warn('Click ATK_Icon failed.')
+            logging.warning('Click ATK_Icon failed.')
             self.click(0.8823, 0.8444, 1)
         # use normal atk card:
         atk_card_x = [0.1003+0.2007*x for x in range(5)]
@@ -522,7 +532,7 @@ class Fgo(object):
         c2 = np.array(img2).mean(axis=(0, 1))
         d = np.linalg.norm(c1 - c2)
         # if OPT.debug:
-            
+
         # info(f'distance: {d}')
         # d +0.0001 to avoid that d == 0
         return d+0.0001 if d < bound else False
@@ -663,7 +673,7 @@ class Fgo(object):
         else:
             logging.error(
                 'Running out of time for 170s.')
-            self.send_mail('Err')
+            self.send_mail('Error')
             raise RuntimeError('Running out of time.')
 
     def one_battle(self, go_on=False):
@@ -684,7 +694,7 @@ class Fgo(object):
                 return 1
 
         logging.error('Running over 50 turns, program was forced to stop.')
-        self.send_mail('Err')
+        self.send_mail('Error')
         raise RuntimeError(
             'Running over 50 turns, program was forced to stop.')
 
@@ -733,7 +743,7 @@ class Fgo(object):
             def getHP(i, x, y, name):
                 self.grab((x, y, x + w, y+h), f'{name}HP_{i}')
                 res = img2str(
-                    ROOT + f'debug/{name}HP_{i}.png').replace(',', '').replace('.', '')
+                    ROOT + f'data/{name}HP_{i}.png').translate(self.digitFinder)
                 return int(res) if res != '' else 0
 
             hp1 = getHP(i, enemy_x[i], enemy_y, 'enemy')
@@ -778,7 +788,7 @@ class Fgo(object):
 
 
 if __name__ == '__main__':
-    # if debug for pyscreenshot, set level to `INFO`, can't run in `DEBUG` level.
+    # if you want to debug for pyscreenshot, set level to `INFO`. Script can't run in `DEBUG` level.
     update_var()
     get_log()
     fgo = Fgo(full_screen=FULL_SCREEN, sleep=False)
