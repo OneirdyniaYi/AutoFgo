@@ -227,7 +227,7 @@ class Fgo:
         }
         # load sample imgs:
         self.LoadImg = {x: Image.open(
-            ROOT + 'data/{}_sample.jpg'.format(x)) for x in self.area.keys()}
+            ROOT + 'data/{}_sample.png'.format(x)) for x in self.area.keys()}
         if not OPT.ContinueRun and not OPT.debug and not OPT.locate:
             if self._monitor('menu', 3, 0) == -1:
                 os._exit(0)
