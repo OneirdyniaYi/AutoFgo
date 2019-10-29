@@ -569,7 +569,7 @@ class Fgo:
         names = (names, ) if len(names[0]) == 1 else names
         beg = time.time()
         pause_time = 0      # set for not calculating time for pause
-        flag = 0
+        last_click_time = beg
         if AllowListenKey:
             kb_listener = KeyEventListener()
             kb_listener.start()
@@ -606,18 +606,22 @@ class Fgo:
                 pause_time += (time.time() - break_time)
             elif AllowListenKey and KeyEventListener.LAST_EPOCH:
                 global END_AFTER_THIS_EPOCH
-                END_AFTER_THIS_EPOCH = True
+                END_AFTER_THIS_EPOCH = not END_AFTER_THIS_EPOCH
+                print('>>> Stop status switched: END_AFTER_THIS_EPOCH = [{}]'.format(
+                    END_AFTER_THIS_EPOCH))
+
+            now = time.time()
             # run out of time:
-            if time.time() - beg - pause_time > max_time:
+            if now - beg - pause_time > max_time:
                 if EchoError:
                     logging.error(
                         '{} running out of time: {}s'.format(names, max_time))
                 return -1
             # every unit time pass:
-            if ClickToSkip and flag == int(CLICK_BREAK_TIME/0.1):
+            if ClickToSkip and now - last_click_time > CLICK_BREAK_TIME:
                 self.click(0.7771, 0.9627, 0)
-                flag = 0
-            flag += 1
+                last_click_time = now
+
             time.sleep(0.1)
 
     def wait_loading(self):

@@ -18,7 +18,7 @@ SKILL_SLEEP2 = 0.15
 SKILL_SLEEP3 = 0.4
 CLICK_BAR_SLEEP = 0.1
 EXTRA_SLEEP_UNIT = 0.05     # defalut 0.1
-CLICK_BREAK_TIME = 0.6
+CLICK_BREAK_TIME = 1.0
 
 # scale increase factor of screen:
 SCALE = 1.5
