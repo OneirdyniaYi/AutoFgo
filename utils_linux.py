@@ -131,7 +131,9 @@ class Cursor(object):
         return self.c.position()
 
     def click(self, pos):
+        # bak_x, bak_y = self.c.position()
         self.c.click(pos[0], pos[1], 1)
+        # self.c.move(bak_x, bak_y)
 
     def get_screen_wh(self):
         return self.c.screen_size()

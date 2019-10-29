@@ -1,6 +1,6 @@
 # coding: utf-8
 # author: Why
-# version: 5.0
+# version: 5.0.2
 import argparse
 import os
 import sys
@@ -11,9 +11,8 @@ from email import encoders
 from email.header import Header
 from email.mime.multipart import MIMEBase, MIMEMultipart
 from email.mime.text import MIMEText
-from collections import Iterable
+from collections.abc import Iterable
 from ocrApi import img2str
-
 import numpy as np
 from PIL import Image
 from config import *
@@ -22,7 +21,7 @@ from email_config import *
 SYSTEM = sys.platform
 
 if SYSTEM == 'linux':
-    print('------------')
+    print('*'*20)
     print('>>> Current system: Linux')
     from utils_linux import *
 else:
@@ -54,7 +53,10 @@ Args.add_argument('--clearAP', '-C', type=int, default=0,
                   help='If clear all AP. -Cn to represent: One apple can run n battles. for example, full AP = 125, AP cost by one battle = 40, then n = 3. set 0 for not clearing AP.')
 
 Args.add_argument('--OCR', '-O', action='store_true',
-                  help='If using OCR to help attacking. I recommend you use it in difficult battles.')
+                  help='Use OCR to help attacking. I recommend you use it in some difficult battles.')
+
+Args.add_argument('--no_focus', '-nf', action='store_true',
+                  help='Don\'t make cursor focus on Fgo window. You should turn this on when you want to do other things while running fgo.')
 
 Args.add_argument('--CheckPos', '-p', action='store_true',
                   help='To see the window-position, shoud be used with `--keep`.')
@@ -78,15 +80,16 @@ SEND_MAIL = False if OPT.epoch < 5 or OPT.debug else True
 def update_var():
     if OPT.shutdown and SYSTEM == 'linux':
         input(
-            '\033[1;31m>>> Warning: Computer will shutdown after running. Continue?\033[0m')
-    print('>>> Attention: You are in DEBUG Mode!' if OPT.debug else '')
+            '\033[1;31m>>> [Warning] Your PC will shutdown after running. Continue?\033[0m')
+    if OPT.debug:
+        print('>>> [Attention] You are in DEBUG Mode!')
 
     # Parse OPT.skill and OPT.ultimate:
     if OPT.skill:
         if OPT.skill[0] in ('+', '-'):
             for x in OPT.skill[1:]:
                 if x not in '123456789':
-                    print('ERR: `Skill` args format error, try again.')
+                    print('[Error] `Skill` args format error, try again.')
                     os._exit(0)
             if OPT.skill[1:] == '':
                 OPT.skill = tuple(range(1, 10)) if OPT.skill[0] == '+' else ()
@@ -96,7 +99,7 @@ def update_var():
                 OPT.skill = tuple({x for x in range(1, 10)} -
                                   set([int(x) for x in OPT.skill[1:]]))
         else:
-            print('ERR: `Skill` args format error, try again.')
+            print('[Error] Args <skill> format error, try again.')
             os._exit(0)
     if OPT.ultimate:
         if OPT.ultimate == '-':
@@ -104,7 +107,7 @@ def update_var():
         else:
             for x in OPT.ultimate:
                 if x not in '123':
-                    print('ERR: `ultimate` args format error, try again.')
+                    print('[Error] Args <ultimate> format error, try again.')
                     os._exit(0)
             OPT.ultimate = tuple([int(x) for x in OPT.ultimate])
 
@@ -112,7 +115,7 @@ def update_var():
     try:
         OPT.support = int(OPT.support)
         if OPT.support not in tuple(range(9)):
-            print('ERR: `SUPPORT` args format error, try again.')
+            print('[Error] Args <Support> format error, try again.')
             os._exit(0)
     except:
         supportID = ('all', 'saber', 'archer', 'lancer', 'rider',
@@ -120,7 +123,7 @@ def update_var():
 
         res = [OPT.support in x for x in supportID]
         if res.count(True) != 1:
-            print('ERR: `SUPPORT` args format error, try again.')
+            print('[Error] Args <Support> format error, try again.')
             os._exit(0)
         else:
             OPT.support = res.index(True)
@@ -204,7 +207,7 @@ class Fgo:
                     print('>>> Position info saved.')
             self.width = abs(self.scr_pos2[0] - self.scr_pos1[0])
             self.height = abs(self.scr_pos2[1] - self.scr_pos1[1])
-            print('------------')
+            print('*'*20)
 
         # ===== position info: =====
         self.area = {
@@ -276,7 +279,14 @@ class Fgo:
 
     def click(self, float_x, float_y, sleep_time):
         x, y = self._set(float_x, float_y, scale=False)
+        bak_x, bak_y = self.c.get_pos()
         self.c.click((x, y))
+        if OPT.no_focus:
+            # click the original position to make cursor focus on your jobs:
+            self.c.click((bak_x, bak_y))
+        else:
+            # just move back:
+            self.c.move_to((bak_x, bak_y))
         time.sleep(sleep_time)
 
     def send_mail(self, status):
@@ -637,8 +647,7 @@ class Fgo:
             CLICK_BREAK_TIME = PRE_BREAK_TIME
             return 'BATTLE_OVER'
 
-        if USE_SKILL:
-            self.use_skill(turn)
+        self.use_skill(turn)
         # reset the attack order:
         if OPT.order:
             # AtkOrder[OPT.order] represent the atk order.
