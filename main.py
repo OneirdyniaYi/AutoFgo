@@ -29,6 +29,7 @@ else:
 
 # ===== Config: =====
 CURRENT_EPOCH = 0
+END_AFTER_THIS_EPOCH = False
 PRE_BREAK_TIME = CLICK_BREAK_TIME
 Args = argparse.ArgumentParser()
 Args.add_argument('--epoch', '-e', type=int, default=3,
@@ -239,9 +240,9 @@ class Fgo:
         '''
         Args:
         ------
-        - float_pos: position tuple of target area, should be floats from 0~1, or name in `self.area`
-        - fname=None: file name to save.
-        - to_PIL=False: Only set `True` when: on linux using `autopy` and need a PIL jpg image.
+        * float_pos: position tuple of target area, should be floats from 0~1, or name in `self.area`
+        * fname=None: file name to save.
+        * to_PIL=False: Only set `True` when: on linux using `autopy` and need a PIL jpg image.
         '''
         if type(float_pos) == str:
             float_pos = self.area[float_pos]
@@ -266,9 +267,9 @@ class Fgo:
 
     def _set(self, float_x, float_y, scale=False):
         '''
-        float_x, float_y: float position on the WINDOW.
-        scale: scale factor, type: int, >1
-        reurn the real position on the screen.
+        * float_x, float_y: float position on the WINDOW.
+        * scale: scale factor, type: int, >1
+        * reurn the real position on the screen.
         '''
         x = int(self.scr_pos1[0]+self.width*float_x)
         y = int(self.scr_pos1[1]+self.height*float_y)
@@ -382,7 +383,7 @@ class Fgo:
                 skill_imgs[i] = self.img['skills'][i]
                 continue
             # N = 25 if SYSTEM == 'linux' else 1
-            # Screenshot bug has been fixed. 1 is enough.
+            # Screenshot bug (gray block bug) has been fixed. 1 is enough.
             N = 1
             imgs = [self.grab((ski_x[i]-0.0138, ski_y-0.0222,
                                ski_x[i]+0.0138, ski_y)) for _ in range(N)]
@@ -547,7 +548,7 @@ class Fgo:
         # d +0.0001 to avoid that d == 0
         return d+0.0001 if d < bound else False
 
-    def _monitor(self, names, max_time, sleep, bound=30, AllowPause=False, ClickToSkip=False, EchoError=True):
+    def _monitor(self, names, max_time, sleep, bound=30, AllowListenKey=False, ClickToSkip=False, EchoError=True):
         '''
         used for monitoring area change.
         When `self.pre_img[name]` is similar to now_img, save now img_bitmap as new img and return.
@@ -555,21 +556,21 @@ class Fgo:
 
         Args:
         ------
-        - names: tuple, choose from self.area.keys()
-        - max_time: maxtime to wait for.
-        - sleep: sleep time when use `_similar()` to judge. To avoid the situation: _similar(now, ori) == True but now != ori, because `now_img` is still in randering, they are similar but not the same.
-        - bound: if 2 imgs' RGB distance < bound, they are similar.
-        - AllowPause: if allow pausing during the loop.
-        - ClickToSkip: Click the screen to skip something.
-        - EchoError: If printing error message when running out of time.
+        * names: tuple, choose from self.area.keys()
+        * max_time: maxtime to wait for.
+        * sleep: sleep time when use `_similar()` to judge. To avoid the situation: _similar(now, ori) == True but now != ori, because `now_img` is still in randering, they are similar but not the same.
+        * bound: if 2 imgs' RGB distance < bound, they are similar.
+        * AllowListenKey: allow keyboard listening during the loop (for pause & end).
+        * ClickToSkip: Click the screen to skip something.
+        * EchoError: If printing error message when running out of time.
         '''
         if SYSTEM != 'linux':
-            AllowPause = False
+            AllowListenKey = False
         names = (names, ) if len(names[0]) == 1 else names
         beg = time.time()
         pause_time = 0      # set for not calculating time for pause
         flag = 0
-        if AllowPause:
+        if AllowListenKey:
             kb_listener = KeyEventListener()
             kb_listener.start()
         # start monitor:
@@ -597,11 +598,15 @@ class Fgo:
                     return names.index(name)
 
             # to listen keyboard and pause:
-            if AllowPause and KeyEventListener.PAUSE:
+            if AllowListenKey and KeyEventListener.PAUSE:
                 break_time = time.time()
-                input('>>> Press enter to continue running:')
+                input(
+                    '\033[5;37;40m >>> Press enter to continue running: \033[0m')
                 KeyEventListener.PAUSE = False
-                pause_time += time.time() - break_time
+                pause_time += (time.time() - break_time)
+            elif AllowListenKey and KeyEventListener.LAST_EPOCH:
+                global END_AFTER_THIS_EPOCH
+                END_AFTER_THIS_EPOCH = True
             # run out of time:
             if time.time() - beg - pause_time > max_time:
                 if EchoError:
@@ -775,8 +780,15 @@ class Fgo:
             CURRENT_EPOCH += 1
             self.one_battle()
             time.sleep(0.5)
+
+            # Stop manually:
+            if END_AFTER_THIS_EPOCH:
+                print('>>> [Info] Manual Interruption after epoch {}.'.format(
+                    CURRENT_EPOCH))
+                os._exit(0)
+
         end = time.time()
-        logging.info('Total time: {:.1f}(min), <{:.1f}(min) on avarage.>'.format(
+        logging.info('TotalTime: {:.1f}(min), <{:.1f}(min) on avarage.>'.format(
             (end-beg)/60, (end-beg)/(60*OPT.epoch)))
         if OPT.shutdown and SYSTEM == 'linux':
             # k = PyKeyboard()

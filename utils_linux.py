@@ -141,18 +141,21 @@ class Cursor(object):
 
 class KeyEventListener(PyKeyboardEvent):
     PAUSE = False
+    LAST_EPOCH = False
 
     def tap(self, keycode, character, press):
         '''
         Args:
         ------
-        keycode: Number ID for input key.
-        character: character of the input key.
-        press: BOOL, True for press, False for release
+        * keycode: Number ID for input key.
+        * character: character of the input key.
+        * press: BOOL, True for press, False for release
         '''
         # print('keycode:', keycode, 'character:', character, 'press:', press)
         if character == 'p':
             KeyEventListener.PAUSE = True
+        elif character == 'e':
+            KeyEventListener.LAST_EPOCH = True
 
 
 # def get_wallpaper_RGB():
