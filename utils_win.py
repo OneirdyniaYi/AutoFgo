@@ -27,7 +27,7 @@ def ScreenShot(x1, y1, x2, y2, to_PIL=False, fname=None):
 
 
 class SpecialFormatter(logging.Formatter):
-    base = '➜ {}-%(asctime)s - %(message)s'
+    base = '>> {}-%(asctime)s - %(message)s'
     FORMATS = {logging.DEBUG: base.format('D'),
                logging.ERROR: base.format('E'),
                logging.INFO: base.format('I'),
@@ -42,7 +42,7 @@ class SpecialFormatter(logging.Formatter):
 
 def get_log():
     # date_fmt = '%m-%d %H:%M:%S'
-    file_fmt = '➜ %(asctime)s:%(levelname)s - %(message)s'
+    file_fmt = '>> %(asctime)s:%(levelname)s - %(message)s'
     file_date_fmt = '%H:%M'
     logging.basicConfig(level=logging.INFO, format=file_fmt,
                         datefmt=file_date_fmt, filename=ROOT + 'data/fgo.LOG', filemode='w')
