@@ -230,8 +230,11 @@ class Fgo:
             'skills': list(range(9))
         }
         # load sample imgs:
-        self.LoadImg = {x: Image.open(
-            ROOT + 'data/{}_sample.png'.format(x)) for x in self.area.keys()}
+        try:
+            self.LoadImg = {x: Image.open(
+                ROOT + 'data/{}_sample.png'.format(x)) for x in self.area.keys()}
+        except Exception:
+            print('[Warning] Some sample images not found.')
         if not OPT.ContinueRun and not OPT.debug and not OPT.locate:
             if self._monitor('menu', 3, 0) == -1:
                 os._exit(0)
@@ -829,9 +832,9 @@ class Fgo:
         #     self.c.click(self.c.get_pos())
         #     time.sleep(0.1)
         # self.run()
-        # self.grab(self.area['fufu'], 'fufu_sample')
+        self.grab(self.area['menu'], 'menu_sample')
         # self.ocrHP()
-        self.buy()
+        # self.buy()
 
 
 if __name__ == '__main__':
