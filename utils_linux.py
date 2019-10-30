@@ -89,7 +89,7 @@ def ScreenShot(x1, y1, x2, y2, to_PIL=False, fname=None):
 
 
 class SpecialFormatter(logging.Formatter):
-    base = '\033[0;{}m>> {}-%(asctime)s - %(message)s\033[0m'
+    base = '\033[0;{}m➜ {}-%(asctime)s - %(message)s\033[0m'
     FORMATS = {logging.DEBUG: base.format(35, 'D'),
                logging.ERROR: base.format(31, 'E'),
                logging.INFO: base.format(32, 'I'),
@@ -104,7 +104,7 @@ class SpecialFormatter(logging.Formatter):
 
 def get_log():
     # date_fmt = '%m-%d %H:%M:%S'
-    file_fmt = '> %(asctime)s:%(levelname)s - %(message)s'
+    file_fmt = '➜ %(asctime)s:%(levelname)s - %(message)s'
     file_date_fmt = '%H:%M'
     logging.basicConfig(level=logging.INFO, format=file_fmt,
                         datefmt=file_date_fmt, filename=ROOT + 'data/fgo.LOG', filemode='w')
@@ -141,7 +141,7 @@ class Cursor(object):
 
 class KeyEventListener(PyKeyboardEvent):
     PAUSE = False
-    LAST_EPOCH = False
+    ENABLE_LAST_EPOCH_SWITCH = False
 
     def tap(self, keycode, character, press):
         '''
@@ -155,7 +155,7 @@ class KeyEventListener(PyKeyboardEvent):
         if character == 'p':
             KeyEventListener.PAUSE = True
         elif character == 'e':
-            KeyEventListener.LAST_EPOCH = True
+            KeyEventListener.ENABLE_LAST_EPOCH_SWITCH = True
 
 
 # def get_wallpaper_RGB():

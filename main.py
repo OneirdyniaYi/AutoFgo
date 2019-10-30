@@ -21,8 +21,8 @@ from email_config import *
 SYSTEM = sys.platform
 
 if SYSTEM == 'linux':
-    print('*'*20)
-    print('>>> Current system: Linux')
+    print('*'*30)
+    print('➜ Current system: Linux')
     from utils_linux import *
 else:
     from utils_win import *
@@ -81,9 +81,9 @@ SEND_MAIL = False if OPT.epoch < 5 or OPT.debug else True
 def update_var():
     if OPT.shutdown and SYSTEM == 'linux':
         input(
-            '\033[1;31m>>> [Warning] Your PC will shutdown after running. Continue?\033[0m')
+            '\033[1;31m➜ [Warning] Your PC will shutdown after running. Continue?\033[0m')
     if OPT.debug:
-        print('>>> [Attention] You are in DEBUG Mode!')
+        print('➜ [Attention] You are in DEBUG Mode!')
 
     # Parse OPT.skill and OPT.ultimate:
     if OPT.skill:
@@ -144,7 +144,7 @@ class DigitFinder:
 
 class Fgo:
     __slots__ = ('c', 'width', 'height', 'scr_pos1',
-                 'scr_pos2', 'area', 'img', 'LoadImg', 'skill_used_turn', 'digitFinder')
+                 'scr_pos2', 'area', 'img', 'LoadImg', 'skill_used_turn', 'digitFinder', 'kb_listener')
 
     def __init__(self, full_screen=True, sleep=True):
         # [init by yourself] put cursor at the down-right position of the game window.
@@ -171,22 +171,22 @@ class Fgo:
                     self.c.move_to(self.scr_pos2)
                     os._exit(0)
                 if KEEP_POSITION == 0:
-                    print('>>> Running keeping last position.')
+                    print('➜ Running keeping last position.')
                 elif KEEP_POSITION:
-                    print('>>> Load init_pos from file', KEEP_POSITION)
+                    print('➜ Load init_pos from file', KEEP_POSITION)
             else:
                 while 1:
-                    if input('>>> Move cursor to <top-left>, then press ENTER (q to exit): ') == 'q':
-                        print('>>> Running stop')
+                    if input('➜ Move cursor to <top-left>, then press ENTER (q to exit): ') == 'q':
+                        print('➜ Running stop')
                         os._exit(0)
                     self.scr_pos1 = self.c.get_pos()
-                    print('>>> Get cursor at {}'.format(self.scr_pos1))
+                    print('➜ Get cursor at {}'.format(self.scr_pos1))
 
-                    if input('>>> Move cursor to <down-right>, then press ENTER (q to exit): ') == 'q':
-                        print('>>> Running stop')
+                    if input('➜ Move cursor to <down-right>, then press ENTER (q to exit): ') == 'q':
+                        print('➜ Running stop')
                         os._exit(0)
                     self.scr_pos2 = self.c.get_pos()
-                    print('>>> Get cursor at {}'.format(self.scr_pos2))
+                    print('➜ Get cursor at {}'.format(self.scr_pos2))
 
                     res = input('Continue? [y(continue) /n(reset) /q(quit)]:')
                     if res == 'n':
@@ -205,10 +205,10 @@ class Fgo:
                         ' ' + str(self.scr_pos2[0]) + \
                         ' ' + str(self.scr_pos2[1])
                     f.write(pos)
-                    print('>>> Position info saved.')
+                    print('➜ Position info saved.')
             self.width = abs(self.scr_pos2[0] - self.scr_pos1[0])
             self.height = abs(self.scr_pos2[1] - self.scr_pos1[1])
-            print('*'*20)
+            print('*'*30)
 
         # ===== position info: =====
         self.area = {
@@ -235,6 +235,10 @@ class Fgo:
         if not OPT.ContinueRun and not OPT.debug and not OPT.locate:
             if self._monitor('menu', 3, 0) == -1:
                 os._exit(0)
+
+        if SYSTEM == 'linux':
+            self.kb_listener = KeyEventListener()
+            self.kb_listener.start()
 
     def grab(self, float_pos, fname=None, to_PIL=False):
         '''
@@ -321,10 +325,10 @@ class Fgo:
             server.login(FROM_ADDRESS, PASSWD)
             server.sendmail(FROM_ADDRESS, [TO_ADDRESS], msg.as_string())
             server.quit()
-            print('>>> Mail sent successfully. Please check it.')
+            print('➜ Mail sent successfully. Please check it.')
         except Exception as e:
             print('\nError type: ', e)
-            print('>>> Mail sent failed. Maybe there are something wrong.')
+            print('➜ Mail sent failed. Maybe there are something wrong.')
 
     def _mission_start(self):
         # postion of `mission start` tag
@@ -353,8 +357,9 @@ class Fgo:
         self.use_apple()
         # choose support servent class icon:
         # time.sleep(EXTRA_SLEEP_UNIT*4)
-        # if CURRENT_EPOCH == 1:
-        #     time.sleep(1.5)
+        
+        if CURRENT_EPOCH == 1:
+            time.sleep(1.5)
         self.click(0.0729+0.0527*supNo, 0.1796, 1)
         self.click(sup_tag_x, sup_tag_y, 1)
 
@@ -570,9 +575,7 @@ class Fgo:
         beg = time.time()
         pause_time = 0      # set for not calculating time for pause
         last_click_time = beg
-        if AllowListenKey:
-            kb_listener = KeyEventListener()
-            kb_listener.start()
+        
         # start monitor:
         while 1:
             for name in names:
@@ -601,13 +604,14 @@ class Fgo:
             if AllowListenKey and KeyEventListener.PAUSE:
                 break_time = time.time()
                 input(
-                    '\033[5;37;40m >>> Press enter to continue running: \033[0m')
+                    '\033[5;37;40m ➜ Press enter to continue running: \033[0m')
                 KeyEventListener.PAUSE = False
                 pause_time += (time.time() - break_time)
-            elif AllowListenKey and KeyEventListener.LAST_EPOCH:
+            elif AllowListenKey and KeyEventListener.ENABLE_LAST_EPOCH_SWITCH:
                 global END_AFTER_THIS_EPOCH
                 END_AFTER_THIS_EPOCH = not END_AFTER_THIS_EPOCH
-                print('>>> Stop status switched: END_AFTER_THIS_EPOCH = [{}]'.format(
+                KeyEventListener.ENABLE_LAST_EPOCH_SWITCH = False
+                print('➜ Stop status switched: END_AFTER_THIS_EPOCH = [{}]'.format(
                     END_AFTER_THIS_EPOCH))
 
             now = time.time()
@@ -719,13 +723,13 @@ class Fgo:
     def use_apple(self):
         # if self.grab(self.area['AP_recover']) == self.img['AP_recover']:
         if self._monitor('AP_recover', 1.5, 0.2, EchoError=False, bound=15) != -1:
-            logging.info('>>> Using apple...')
+            logging.info('➜ Using apple...')
             # choose apple:
             self.click(0.5, 0.4463, 0.7)
             self.click(0.5, 0.6473, 0.7)
             # choose OK:
             self.click(0.6563, 0.7824, 1)
-            logging.info('>>> Apple using over.')
+            logging.info('➜ Apple using over.')
             time.sleep(1.5)
             global CURRENT_EPOCH
 
@@ -787,7 +791,7 @@ class Fgo:
 
             # Stop manually:
             if END_AFTER_THIS_EPOCH:
-                print('>>> [Info] Manual Interruption after epoch {}.'.format(
+                print('➜ [Info] Manual Interruption after epoch {}.'.format(
                     CURRENT_EPOCH))
                 os._exit(0)
 
@@ -803,13 +807,31 @@ class Fgo:
         if SEND_MAIL:
             self.send_mail('Done')
 
+    def buy(self):
+        # 无限池抽卡
+        btn_pos = (0.3681, 0.6034)
+        reset_shop_pos = (0.8477, 0.3325)
+
+        cnum = 0
+        while True:
+            self.click(*btn_pos, 0.1)
+            cnum += 1
+            if cnum == 20:
+                self.click(*reset_shop_pos, 0.05)
+                self.click(0.6573, 0.766, 0.05)
+                self.click(0.4993, 0.7759, 0.05)
+                cnum = 0
+            
+
+
     def debug(self):
         # while 1:
         #     self.c.click(self.c.get_pos())
         #     time.sleep(0.1)
         # self.run()
-        self.grab(self.area['fufu'], 'fufu_sample')
+        # self.grab(self.area['fufu'], 'fufu_sample')
         # self.ocrHP()
+        self.buy()
 
 
 if __name__ == '__main__':
