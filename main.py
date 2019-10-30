@@ -360,7 +360,7 @@ class Fgo:
         self.use_apple()
         # choose support servent class icon:
         # time.sleep(EXTRA_SLEEP_UNIT*4)
-        
+
         if CURRENT_EPOCH == 1:
             time.sleep(1.5)
         self.click(0.0729+0.0527*supNo, 0.1796, 1)
@@ -578,7 +578,7 @@ class Fgo:
         beg = time.time()
         pause_time = 0      # set for not calculating time for pause
         last_click_time = beg
-        
+
         # start monitor:
         while 1:
             for name in names:
@@ -606,15 +606,14 @@ class Fgo:
             # to listen keyboard and pause:
             if AllowListenKey and KeyEventListener.PAUSE:
                 break_time = time.time()
-                input(
-                    '\033[5;37;40m ➜ Press enter to continue running: \033[0m')
+                input('\033[5;37m ➜ Press enter to continue running: \033[0m')
                 KeyEventListener.PAUSE = False
                 pause_time += (time.time() - break_time)
             elif AllowListenKey and KeyEventListener.ENABLE_LAST_EPOCH_SWITCH:
                 global END_AFTER_THIS_EPOCH
                 END_AFTER_THIS_EPOCH = not END_AFTER_THIS_EPOCH
                 KeyEventListener.ENABLE_LAST_EPOCH_SWITCH = False
-                print('➜ Stop status switched: END_AFTER_THIS_EPOCH = [{}]'.format(
+                print('\033[5;37m ➜ Stop status switched: END_AFTER_THIS_EPOCH = [{}]\033[0m'.format(
                     END_AFTER_THIS_EPOCH))
 
             now = time.time()
@@ -726,13 +725,13 @@ class Fgo:
     def use_apple(self):
         # if self.grab(self.area['AP_recover']) == self.img['AP_recover']:
         if self._monitor('AP_recover', 1.5, 0.2, EchoError=False, bound=15) != -1:
-            logging.info('➜ Using apple...')
+            logging.info('Using apple...')
             # choose apple:
             self.click(0.5, 0.4463, 0.7)
             self.click(0.5, 0.6473, 0.7)
             # choose OK:
             self.click(0.6563, 0.7824, 1)
-            logging.info('➜ Apple using over.')
+            logging.info('Apple using over.')
             time.sleep(1.5)
             global CURRENT_EPOCH
 
@@ -824,8 +823,6 @@ class Fgo:
                 self.click(0.6573, 0.766, 0.05)
                 self.click(0.4993, 0.7759, 0.05)
                 cnum = 0
-            
-
 
     def debug(self):
         # while 1:
