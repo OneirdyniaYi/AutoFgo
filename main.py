@@ -631,7 +631,7 @@ class Fgo:
                 self.click(0.7771, 0.9627, 0)
                 last_click_time = now
 
-            time.sleep(0.1)
+            time.sleep(0.01)
 
     def wait_loading(self):
         logging.info('<LOAD> - Now loading...')
@@ -682,7 +682,7 @@ class Fgo:
 
         # Monitoring status change:
         info('Monitoring, no change got...')
-        res = self._monitor(('atk', 'fufu', 'menu'), 120, 0, 20, True, True)
+        res = self._monitor(('atk', 'fufu', 'menu'), 60, 0, 20, True, True)
         if res == -1:
             atk_card_x = [0.1003+0.2007*x for x in range(5)]
             for _ in range(3):
