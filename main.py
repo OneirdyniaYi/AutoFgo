@@ -75,7 +75,7 @@ OPT = Args.parse_args()
 # ===== Global varibles: =====
 KEEP_POSITION = OPT.keep if OPT.keep != None else False
 SEND_MAIL = False if OPT.epoch < 5 or OPT.debug else True
-BAK_ULTIMATE = OPT.ultimate
+BAK_ULTIMATE = None
 
 
 # ===== Main Code: =====
@@ -112,6 +112,8 @@ def update_var():
                     print('[Error] Args <ultimate> format error, try again.')
                     os._exit(0)
             OPT.ultimate = tuple([int(x) for x in OPT.ultimate])
+    global BAK_ULTIMATE
+    BAK_ULTIMATE = OPT.ultimate
 
     # Parse OPT.support:
     try:
