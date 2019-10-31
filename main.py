@@ -75,6 +75,7 @@ OPT = Args.parse_args()
 # ===== Global varibles: =====
 KEEP_POSITION = OPT.keep if OPT.keep != None else False
 SEND_MAIL = False if OPT.epoch < 5 or OPT.debug else True
+BAK_ULTIMATE = OPT.ultimate
 
 
 # ===== Main Code: =====
@@ -501,8 +502,8 @@ class Fgo:
                 print(e)
                 logging.error('OCR failed, please check images in `./data`')
             else:
-                if enemyHP < 50000 and ourHP > 24000:
-                    OPT.ultimate = ()
+                OPT.ultimate = () if enemyHP < 50000 and ourHP > 24000 else BAK_ULTIMATE
+                    
 
         info('Now start attacking....')
         # click attack icon:
