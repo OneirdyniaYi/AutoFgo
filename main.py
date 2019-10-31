@@ -682,7 +682,7 @@ class Fgo:
 
         # Monitoring status change:
         info('Monitoring, no change got...')
-        res = self._monitor(('atk', 'fufu', 'menu'), 60, 0, 20, True, True)
+        res = self._monitor(('atk', 'fufu', 'menu'), 120, 0, 20, True, True)
         if res == -1:
             atk_card_x = [0.1003+0.2007*x for x in range(5)]
             for _ in range(3):
