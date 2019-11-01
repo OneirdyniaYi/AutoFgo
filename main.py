@@ -589,7 +589,7 @@ class Fgo:
                 if not self.img[name]:
                     now, now_bit = self.grab(self.area[name], to_PIL=True)
 
-                    now_bit.save('./debug/{}.png'.format(name))
+                    # now_bit.save('./debug/{}.png'.format(name))
                     d = self._similar(self.LoadImg[name], now, bound)
                     if d:
                         if sleep:
@@ -627,7 +627,7 @@ class Fgo:
                         '{} running out of time: {}s'.format(names, max_time))
                 return -1
             # every unit time pass:
-            if ClickToSkip and now - last_click_time > CLICK_BREAK_TIME:
+            if ClickToSkip and (time.time() - last_click_time) >= CLICK_BREAK_TIME:
                 self.click(0.7771, 0.9627, 0)
                 last_click_time = now
 
