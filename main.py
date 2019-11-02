@@ -221,17 +221,12 @@ class Fgo:
             # 'support': (0.6257, 0.1558, 0.6803, 0.1997),
             'atk': (0.8708, 0.7556, 0.8979, 0.8009),
             # 'fufu': (0.4611, 0.9694, 0.4731, 0.9907)
-            'fufu': (0.5088, 0.8926, 0.53, 0.999)
+            'fufu': (0.5088, 0.8926, 0.53, 0.999),
+            # '下一步' button
+            # 'BattleFinish': (0.8223, 0.9089, 0.9126, 0.9606)
         }
-        self.img = {
-            'menu': None,
-            'StartMission': None,
-            'AP_recover': None,
-            'atk': None,
-            # 'nero': None,
-            'fufu': None,
-            'skills': list(range(9))
-        }
+        self.img = {x: None for x in self.area.keys()}
+        self.img['skills'] = list(range(9))
         # load sample imgs:
         try:
             self.LoadImg = {x: Image.open(
@@ -382,7 +377,7 @@ class Fgo:
                 self.send_mail('Error')
                 raise RuntimeError('Can\'t get START_MISSION tag for 10s')
 
-    def get_skill_img(self, turn, saveImg=False):
+    def get_skill_imgs(self, turn, saveImg=False):
         # turn = False for get all imgs.
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
@@ -391,6 +386,7 @@ class Fgo:
         for no in OPT.skill:
             i = no - 1
             if turn and turn - self.skill_used_turn[i] < SKILL_MIN_CD:
+                # just use the old img:
                 skill_imgs[i] = self.img['skills'][i]
                 continue
             # N = 25 if SYSTEM == 'linux' else 1
@@ -399,12 +395,13 @@ class Fgo:
             imgs = [self.grab((ski_x[i]-0.0138, ski_y-0.0222,
                                ski_x[i]+0.0138, ski_y)) for _ in range(N)]
             img = imgs[0]
-            max_count = imgs.count(imgs[0])
-            for x in imgs:
-                count = imgs.count(x)
-                if count > max_count:
-                    img = x
-                    max_count = count
+            if N > 1:
+                max_count = imgs.count(imgs[0])
+                for x in imgs:
+                    count = imgs.count(x)
+                    if count > max_count:
+                        img = x
+                        max_count = count
             # skill_imgs[i] = self.grab(
             #     (ski_x[i]-0.0138, ski_y-0.0222, ski_x[i]+0.0138, ski_y))
             skill_imgs[i] = img
@@ -439,10 +436,14 @@ class Fgo:
         return 1
 
     def use_skill(self, turn):
+        '''
+        Get images of skills (CD status) after using in turn 1, and compare current_img to CD_status_img to see that which skill can be used. 
+        '''
         # position of skills:
         info('Now using skills...')
         # snap_x = 0.0734
         if turn == 1:
+
             time.sleep(EXTRA_SLEEP_UNIT*10)
             self.skill_used_turn = [None for _ in range(9)]
             for no in OPT.skill:
@@ -451,25 +452,28 @@ class Fgo:
             if YILI:
                 self._use_one_skill(turn, 6)
             time.sleep(EXTRA_SLEEP_UNIT*2)
-            # first turn, get imgs of all skills
-            self.img['skills'] = self.get_skill_img(turn=False)
+
+            # first turn, get imgs of all skills (in CD status)
+            self.img['skills'] = self.get_skill_imgs(turn=False)
+
         else:
             info('Skill CD: {}'.format(
                 [turn-x for x in self.skill_used_turn if type(x) == int]))
             time.sleep(EXTRA_SLEEP_UNIT*4)
-            # only get imgs for skills that not in CD(now_turn - used_turn > min_CD):
-            now_skill_img = self.get_skill_img(turn)
+            # only get imgs of skills that not in CD (now_turn - used_turn > min_CD):
+            now_skill_img = self.get_skill_imgs(turn)
+
             if not(now_skill_img == self.img['skills']):
                 time.sleep(EXTRA_SLEEP_UNIT*10)
                 for no in OPT.skill:
                     if not(now_skill_img[no-1] == self.img['skills'][no-1]):
                         self._use_one_skill(turn, no-1)
-                    if turn == 2 and no == 8:
-                        self._use_one_skill(turn, no-1)
+                    # if turn == 2 and no == 8:
+                    #     self._use_one_skill(turn, no-1)
                 if YILI:
                     self._use_one_skill(turn, 6)
-                time.sleep(EXTRA_SLEEP_UNIT*2)
-                self.img['skills'] = self.get_skill_img(turn=False)
+            time.sleep(EXTRA_SLEEP_UNIT*2)
+            self.img['skills'] = self.get_skill_imgs(turn=False)
 
     def _choose_card(self):
         # normal atk card position:
@@ -505,7 +509,6 @@ class Fgo:
                 logging.error('OCR failed, please check images in `./data`')
             else:
                 OPT.ultimate = () if enemyHP < 50000 and ourHP > 24000 else BAK_ULTIMATE
-                    
 
         info('Now start attacking....')
         # click attack icon:
@@ -630,7 +633,7 @@ class Fgo:
             if ClickToSkip and now - last_click_time > CLICK_BREAK_TIME:
                 self.click(0.7771, 0.9627, 0)
                 last_click_time = now
-
+                
             time.sleep(0.01)
 
     def wait_loading(self):
@@ -649,6 +652,8 @@ class Fgo:
     def one_turn(self, turn):
         # Define functions to react each kinds of changes DURING a turn:
         def atk():
+            global CLICK_BREAK_TIME
+            CLICK_BREAK_TIME = PRE_BREAK_TIME
             info('Got status change, Start new turn.')
             return 'NEXT_TURN'
 
@@ -661,7 +666,7 @@ class Fgo:
 
         def menu():
             info('Detected change, battle finish.')
-            global PRE_BREAK_TIME, CLICK_BREAK_TIME
+            global CLICK_BREAK_TIME
             CLICK_BREAK_TIME = PRE_BREAK_TIME
             return 'BATTLE_OVER'
 
@@ -683,6 +688,7 @@ class Fgo:
         # Monitoring status change:
         info('Monitoring, no change got...')
         res = self._monitor(('atk', 'fufu', 'menu'), 60, 0, 20, True, True)
+
         if res == -1:
             atk_card_x = [0.1003+0.2007*x for x in range(5)]
             for _ in range(3):
@@ -690,7 +696,9 @@ class Fgo:
             for i in range(5):
                 self.click(atk_card_x[i], 0.7019, 0.2)
             logging.warning('Something wrong. Trying to fix it.')
-            res = self._monitor(('atk', 'fufu', 'menu'), 50, 0, 20, True, True)
+            res = self._monitor(
+                ('atk', 'fufu', 'menu'), 50, 0, 20, True, True)
+
         if res != -1:
             status = (atk, fufu, menu)[res]()
             if status == 'CONTINUE':
@@ -781,6 +789,11 @@ class Fgo:
             info(f'OCR [{i+1}] enemyHP: {hp1}, ourHP: {hp2}.')
 
         info(f'OCR [all] enemyHP: {enemyHP}, ourHP: {ourHP} on total.')
+
+        # remove HP image files:
+        for i in range(3):
+            os.remove(ROOT + f'data/enemyHP_{i}.png')
+            os.remove(ROOT + f'data/ourHP_{i}.png')
         return enemyHP, ourHP
 
     def run(self):
@@ -821,7 +834,7 @@ class Fgo:
         while True:
             self.click(*btn_pos, 0.1)
             cnum += 1
-            if cnum == 20:
+            if cnum == 5:
                 self.click(*reset_shop_pos, 0.05)
                 self.click(0.6573, 0.766, 0.05)
                 self.click(0.4993, 0.7759, 0.05)
@@ -832,9 +845,8 @@ class Fgo:
         #     self.c.click(self.c.get_pos())
         #     time.sleep(0.1)
         # self.run()
-        self.grab(self.area['menu'], 'menu_sample')
         # self.ocrHP()
-        # self.buy()
+        self.buy()
 
 
 if __name__ == '__main__':
