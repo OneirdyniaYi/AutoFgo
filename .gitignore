@@ -7,6 +7,7 @@ test.py
 *.pyc
 __pycache__
 .ipynb_checkpoints
+*.ipynb
 .vscode
 tmp.png
 *.jpg
@@ -16,3 +17,4 @@ debug
 data
 email_config.py
 *.zip
+tmp.py

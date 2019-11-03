@@ -21,7 +21,8 @@ EXTRA_SLEEP_UNIT = 0.05     # defalut 0.1
 CLICK_BREAK_TIME = 1.0
 
 # scale increase factor of screen:
-SCALE = 1.5
+# SCALE = 1.5
+SCALE = autopy.bitmap.capture_screen(((0, 0), (1, 1))).scale
 
 
 # LOG:
@@ -42,9 +43,14 @@ def ScreenShot(x1, y1, x2, y2, to_PIL=False, fname=None):
     if fname:
         im.save(ROOT + 'data/{}.png'.format(fname))
     if to_PIL:
-        # return PIL_img, bitmap_img
-        im.save(ROOT + 'data/tmp.png')
-        return Image.open(ROOT + 'data/tmp.png').convert('RGB'), im
+        # return (PIL_img, bitmap_img):
+        # im.save(ROOT + 'data/tmp.png')
+        # return Image.open(ROOT + 'data/tmp.png').convert('RGB'), im
+
+        width, height = int(round(im.width * im.scale)
+                            ), int(round(im.height * im.scale))
+        return Image.frombytes('RGB', (width, height), bytes(im)), im
+
     else:
         return im
 

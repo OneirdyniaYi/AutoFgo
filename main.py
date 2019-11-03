@@ -17,11 +17,12 @@ import numpy as np
 from PIL import Image
 from config import *
 from email_config import *
+from ipdb import set_trace
 
 SYSTEM = sys.platform
 
 if SYSTEM == 'linux':
-    print('*'*30)
+    print('-'*30)
     print('➜ Current system: Linux')
     from utils_linux import *
 else:
@@ -211,7 +212,7 @@ class Fgo:
                     print('➜ Position info saved.')
             self.width = abs(self.scr_pos2[0] - self.scr_pos1[0])
             self.height = abs(self.scr_pos2[1] - self.scr_pos1[1])
-            print('*'*30)
+            print('-'*30)
 
         # ===== position info: =====
         self.area = {
@@ -220,8 +221,8 @@ class Fgo:
             'AP_recover': (0.2511, 0.177, 0.2907, 0.2464),
             # 'support': (0.6257, 0.1558, 0.6803, 0.1997),
             'atk': (0.8708, 0.7556, 0.8979, 0.8009),
-            # 'fufu': (0.4611, 0.9694, 0.4731, 0.9907)
-            'fufu': (0.5088, 0.8926, 0.53, 0.999),
+            'fufu': (0.4381, 0.7515, 0.5845, 0.8838)
+            # 'fufu': (0.5088, 0.8926, 0.53, 0.999),
             # '下一步' button
             # 'BattleFinish': (0.8223, 0.9089, 0.9126, 0.9606)
         }
@@ -550,19 +551,18 @@ class Fgo:
             time.sleep(1)
         info('Card using over.')
 
-    def _similar(self, img1, img2, bound=30):
-        # to find if 2 imgs(PIL jpg format) are very similar.
-        # - bound: if 2 imgs' distance in RGB < bound, return True.
+    def _similar(self, img1, img2, bounds=30):
+        # to find if 2 imgs(PIL jpg format) are similar.
+        # - bounds: if 2 imgs' distance in RGB < bounds, return True.
         c1 = np.array(img1).mean(axis=(0, 1))
         c2 = np.array(img2).mean(axis=(0, 1))
         d = np.linalg.norm(c1 - c2)
         # if OPT.debug:
-
         # info(f'distance: {d}')
         # d +0.0001 to avoid that d == 0
-        return d+0.0001 if d < bound else False
+        return d+0.0001 if d < bounds else False
 
-    def _monitor(self, names, max_time, sleep, bound=30, AllowListenKey=False, ClickToSkip=False, EchoError=True):
+    def _monitor(self, names, max_time, sleep, bounds=30, AllowListenKey=False, ClickToSkip=False, EchoError=True):
         '''
         used for monitoring area change.
         When `self.pre_img[name]` is similar to now_img, save now img_bitmap as new img and return.
@@ -573,21 +573,25 @@ class Fgo:
         * names: tuple, choose from self.area.keys()
         * max_time: maxtime to wait for.
         * sleep: sleep time when use `_similar()` to judge. To avoid the situation: _similar(now, ori) == True but now != ori, because `now_img` is still in randering, they are similar but not the same.
-        * bound: if 2 imgs' RGB distance < bound, they are similar.
+        * bounds <List[float]> : if 2 imgs' RGB distance < bounds, they are similar.
         * AllowListenKey: allow keyboard listening during the loop (for pause & end).
         * ClickToSkip: Click the screen to skip something.
         * EchoError: If printing error message when running out of time.
         '''
         if SYSTEM != 'linux':
             AllowListenKey = False
-        names = (names, ) if len(names[0]) == 1 else names
+
+        names = (names, ) if type(names) == str else names
+        bounds = bounds if isinstance(bounds, Iterable) else (bounds, )
+        assert len(names) == len(bounds)
+
         beg = time.time()
         pause_time = 0      # set for not calculating time for pause
         last_click_time = beg
 
         # start monitor:
         while 1:
-            for name in names:
+            for name, bound in zip(names, bounds):
                 # First running for `name`:
                 if not self.img[name]:
                     now, now_bit = self.grab(self.area[name], to_PIL=True)
@@ -606,7 +610,8 @@ class Fgo:
 
                 # already have self.img[name]:
                 elif self.grab(self.area[name], to_PIL=False) == self.img[name]:
-                    logging.info('{} Detected, Status change.'.format(name))
+                    logging.info(
+                        'Detected [{}], Func <_monitor> returned.'.format(name))
                     return names.index(name)
 
             # to listen keyboard and pause:
@@ -633,7 +638,7 @@ class Fgo:
             if ClickToSkip and (time.time() - last_click_time) >= CLICK_BREAK_TIME:
                 self.click(0.7771, 0.9627, 0)
                 last_click_time = now
-                
+
             time.sleep(0.01)
 
     def wait_loading(self):
@@ -644,7 +649,7 @@ class Fgo:
                 self.img['fufu'] = self.grab('fufu')
                 info('ATTENTION: Now saved sample for `fufu` since monitor failed.')
             else:
-                self._monitor('fufu', 30, 0.5, 10)
+                self._monitor('fufu', 30, 0.5, 5)
         if self._monitor('atk', 150, 0.5) == -1:
             os._exit(0)
         info('Finish loading, battle start.')
@@ -654,21 +659,22 @@ class Fgo:
         def atk():
             global CLICK_BREAK_TIME
             CLICK_BREAK_TIME = PRE_BREAK_TIME
-            info('Got status change, Start new turn.')
-            return 'NEXT_TURN'
+            info('Run func <atk>, Start new turn.')
+            return 'NEXT-TURN'
 
         def fufu():
             global CLICK_BREAK_TIME
             CLICK_BREAK_TIME = 5
-            info('Get loading page, end epoch{}.'.format(CURRENT_EPOCH))
+            info('Set click-break={} & wait for [menu]'.format(CLICK_BREAK_TIME))
             time.sleep(1)
-            return 'CONTINUE'
+            # wait for [menu], if detected, then finish the battle.
+            return 'WAIT-MENU'
 
         def menu():
-            info('Detected change, battle finish.')
+            info('Run func <menu>, battle finish.')
             global CLICK_BREAK_TIME
             CLICK_BREAK_TIME = PRE_BREAK_TIME
-            return 'BATTLE_OVER'
+            return 'BATTLE-OVER'
 
         self.use_skill(turn)
         # reset the attack order:
@@ -687,7 +693,8 @@ class Fgo:
 
         # Monitoring status change:
         info('Monitoring, no change got...')
-        res = self._monitor(('atk', 'fufu', 'menu'), 60, 0, 20, True, True)
+        res = self._monitor(('atk', 'fufu', 'menu'), 60,
+                            0, (20, 3, 20), True, True)
 
         if res == -1:
             atk_card_x = [0.1003+0.2007*x for x in range(5)]
@@ -697,12 +704,13 @@ class Fgo:
                 self.click(atk_card_x[i], 0.7019, 0.2)
             logging.warning('Something wrong. Trying to fix it.')
             res = self._monitor(
-                ('atk', 'fufu', 'menu'), 50, 0, 20, True, True)
+                ('atk', 'fufu', 'menu'), 50, 0, (20, 3, 20), True, True)
 
         if res != -1:
             status = (atk, fufu, menu)[res]()
-            if status == 'CONTINUE':
-                res = self._monitor(('atk', 'menu'), 50, 0, 20, False, True)
+            if status == 'WAIT-MENU':
+                res = self._monitor(('atk', 'menu'), 50, 0,
+                                    (20, 20), False, True)
                 status = (atk, menu)[res]()
             return status
         else:
@@ -725,7 +733,7 @@ class Fgo:
             info('Start Turn {}'.format(i+1))
             # Here CD_num == i
             status = self.one_turn(i+1)
-            if status == 'BATTLE_OVER':
+            if status == 'BATTLE-OVER':
                 return 1
 
         logging.error('Running over 50 turns, program was forced to stop.')
@@ -735,7 +743,7 @@ class Fgo:
 
     def use_apple(self):
         # if self.grab(self.area['AP_recover']) == self.img['AP_recover']:
-        if self._monitor('AP_recover', 1.5, 0.2, EchoError=False, bound=15) != -1:
+        if self._monitor('AP_recover', 1.5, 0.2, EchoError=False, bounds=15) != -1:
             logging.info('Using apple...')
             # choose apple:
             self.click(0.5, 0.4463, 0.7)
@@ -846,7 +854,10 @@ class Fgo:
         #     time.sleep(0.1)
         # self.run()
         # self.ocrHP()
-        self.buy()
+        # self.buy()
+        bm, im = self.grab(self.area['fufu'], 'fufu_sample', to_PIL=True)
+        import ipdb
+        ipdb.set_trace()
 
 
 if __name__ == '__main__':
