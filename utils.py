@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from PIL import Image
 
 
 def cal_single_hist(image1, image2):
@@ -25,9 +26,17 @@ def similar(img1, img2, bound=0.5, name=False, size=(128, 128)):
     sub_data = 0
     for im1, im2 in zip(sub_image1, sub_image2):
         sub_data += cal_single_hist(im1, im2)
-    res = (sub_data / 3)[0]
+
+    res = (sub_data / 3)[0] if type(sub_data) != float else sub_data / 3
 
     if name and res > 0.5:
-        print(f'{name} Similarity: {res}, bound: {bound}')
+        print(f'+ Name: [{name}] Similarity: {res:.4f}, bound: {bound}')
     # d +0.0001 to avoid that d == 0
     return res if res > bound else False
+
+
+def bmp2pil(im):
+    # convert bitmap image to PIL format.
+    width, height = int(round(im.width * im.scale)
+                        ), int(round(im.height * im.scale))
+    return Image.frombytes('RGB', (width, height), bytes(im))

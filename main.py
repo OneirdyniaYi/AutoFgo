@@ -7,18 +7,24 @@ import sys
 import smtplib
 import string
 import time
+
 from email import encoders
 from email.header import Header
 from email.mime.multipart import MIMEBase, MIMEMultipart
 from email.mime.text import MIMEText
+
 from collections.abc import Iterable
 from ocrApi import img2str
 import numpy as np
 from PIL import Image
+import pandas as pd
+import prettytable
+
 from config import *
-from utils import similar
+from utils import similar, bmp2pil
 from email_config import *
-from ipdb import set_trace
+# from ipdb import set_trace
+
 
 SYSTEM = sys.platform
 
@@ -30,18 +36,18 @@ else:
     from utils_win import *
 
 # ===== Config: =====
-CURRENT_EPOCH = 0
-END_AFTER_THIS_EPOCH = False
-PRE_BREAK_TIME = CLICK_BREAK_TIME
 Args = argparse.ArgumentParser()
 Args.add_argument('--epoch', '-e', type=int, default=3,
                   help='Num of running battles.')
 
-Args.add_argument('--support', '-s', type=str, default='7',
+Args.add_argument('--support', '-s', type=str,
                   help='ID or name (e.g. `sab` for saber, program will AutoComplete the name) of support servent. ServentID: 0. all,  1. saber,  2. archer,  3. lancer,  4. rider,  5. caster,  6. assassin,  7. berserker,  8. special')
 
 Args.add_argument('--skill', '-S', type=str, default='+',
                   help='Skills you want to set. e.g: `S+12345` for only using 1~5, `S-123` for only NOT using skill 1~3, `S-` for not using any skill, `S+` for using all skills.')
+
+Args.add_argument('--config_file', '-cf', type=str,
+                  help='csv formated config file for skills, ult and atk order.')
 
 Args.add_argument('--ultimate', '-u', type=str, default='123',
                   help='Ultimate Skills you want to use. exmaple: `u12` for using 1~2, `u-` for NOT using anyone.')
@@ -74,13 +80,19 @@ Args.add_argument('--locate', '-l', action='store_true',
 opt = Args.parse_args()
 
 # ===== Global verible: =====
+END_AFTER_THIS_EPOCH = False
+PRE_BREAK_TIME = CLICK_BREAK_TIME
 KEEP_POSITION = opt.keep if opt.keep != None else False
 SEND_MAIL = False if opt.epoch < 5 or opt.debug else True
-BAK_ULTIMATE = None
-CURRENT_SCENE = 1
-
+CURRENT = {
+    'epoch': 0,
+    'scene': 1,
+    'turn': 1
+}
 
 # ===== Main Code: =====
+
+
 def update_var():
     if opt.shutdown and SYSTEM == 'linux':
         input(
@@ -114,8 +126,10 @@ def update_var():
                     print('[Error] Args <ultimate> format error, try again.')
                     os._exit(0)
             opt.ultimate = tuple([int(x) for x in opt.ultimate])
-    global BAK_ULTIMATE
-    BAK_ULTIMATE = opt.ultimate
+
+    # use default support servant:
+    if not opt.support:
+        return
 
     # Parse opt.support:
     try:
@@ -136,7 +150,7 @@ def update_var():
 
 
 def info(str):
-    logging.info('<E{}/{}> - {}'.format(CURRENT_EPOCH, opt.epoch, str))
+    logging.info('<E{}/{}> - {}'.format(CURRENT['epoch'], opt.epoch, str))
 
 
 class DigitFinder:
@@ -155,7 +169,7 @@ class Fgo:
     * ajust SCALE in utils_linux/win.py if you changed the screen scale.
     '''
     __slots__ = ('c', 'width', 'height', 'scr_pos1',
-                 'scr_pos2', 'area', 'img', 'LoadImg', 'skill_used_turn', 'digitFinder', 'kb_listener')
+                 'scr_pos2', 'area', 'img', 'LoadImg', 'skill_used_turn', 'digitFinder', 'kb_listener', 'config')
 
     def __init__(self, full_screen=True, sleep=True):
         # [init by yourself] put cursor at the down-right position of the game window.
@@ -230,13 +244,18 @@ class Fgo:
             'atk': (0.8708, 0.7556, 0.8979, 0.8009),
             # 'atk': (0.9155, 0.252, 0.9527, 0.328),
             'fufu': (0.9, 0.85, 1.0, 1.0),
-            'battle-title': (0.3446, 0.3908, 0.6622, 0.5451),
-            'final-battle-title': (0.3446, 0.3908, 0.6622, 0.5451),
+            'normal-scene': (0.3446, 0.3908, 0.6622, 0.5451),
+            'final-scene': (0.3446, 0.3908, 0.6622, 0.5451),
             # '下一步' button
             'BattleFinish': (0.8223, 0.9089, 0.9126, 0.9606)
         }
         self.img = {x: None for x in self.area.keys()}
-        self.img['skills'] = list(range(9))
+
+        # images of skills in used state (drak):
+        self.img['onCD-skills'] = [None] * 9
+        # image of skills which can be used (light):
+        # self.img['active-skills'] = list(range(9))
+
         # load sample imgs:
         try:
             self.LoadImg = {x: Image.open(
@@ -246,6 +265,31 @@ class Fgo:
         if not opt.ContinueRun and not opt.debug and not opt.locate:
             if self._monitor('menu', 3, 0) == -1:
                 os._exit(0)
+
+        '''
+        Config File Example (*.conf):
+        --------
+        scene, allowed-skills, ultimate, atk-order
+        1, none, none, 1
+        2, 123456789, none, -2
+        3, 123456789, 123, -3
+        
+        * none for not using skills; 
+        * atk-order format is the same as args `--order`.
+        '''
+        if opt.config_file:
+            '''
+            self.config Format:
+            ------------------
+            {
+             'allowed-skills':  {'1': '123456789',  '2': '123456789',   '3': '123456789'},
+             'atk-order':       {'1': '1',          '2': '1',           '3': '1'},
+             'ultimate':        {'1': 'none',       '2': 'none',        '3': '123'}
+            }
+            '''
+            self.config = pd.read_csv(
+                opt.config_file, sep=', ', dtype=str, engine='python').set_index('scene').to_dict()
+            print(prettytable.from_csv(open(opt.config_file, 'r')))
 
         if SYSTEM == 'linux':
             self.kb_listener = KeyEventListener()
@@ -296,6 +340,11 @@ class Fgo:
     def click(self, float_x, float_y, sleep_time):
         x, y = self._set(float_x, float_y, scale=False)
         bak_x, bak_y = self.c.get_pos()
+
+        # add noise to (x, y):
+        x += np.random.randint(0, 4)
+        y += np.random.randint(0, 4)
+
         self.c.click((x, y))
         if opt.no_focus:
             # click the original position to make cursor focus on your jobs:
@@ -303,6 +352,8 @@ class Fgo:
         else:
             # just move back:
             self.c.move_to((bak_x, bak_y))
+
+        sleep_time *= (np.random.rand() * 0.1 + 1)
         time.sleep(sleep_time)
 
     def send_mail(self, status):
@@ -353,13 +404,13 @@ class Fgo:
             # not using item:
             self.click(0.6469, 0.9131, 0.5)
 
-    def enter_battle(self, supNo=8):
+    def enter_battle(self, supNo):
         # [init by yourself] put the tag of battle at the top of screen.
         # postion of support servant tag.
         sup_tag_x = 0.4893
         sup_tag_y = 0.3944
         # click to hide the terminal:
-        # if CURRENT_EPOCH == 1:
+        # if CURRENT['epoch'] == 1:
         #     self.click(0.2828, 0.7435, 0.3)
 
         # click the center of battle tag.
@@ -369,9 +420,11 @@ class Fgo:
         # choose support servent class icon:
         # time.sleep(EXTRA_SLEEP_UNIT*4)
 
-        if CURRENT_EPOCH == 1:
-            time.sleep(1.5)
-        self.click(0.0729 + 0.0527 * supNo, 0.1796, 1)
+        if supNo:
+            if CURRENT['epoch'] == 1:
+                time.sleep(1.5)
+            self.click(0.0729 + 0.0527 * supNo, 0.1796, 1)
+
         self.click(sup_tag_x, sup_tag_y, 1)
 
         # if self._monitor('StartMission', 10, 0.3) != -1:
@@ -388,16 +441,16 @@ class Fgo:
                 raise RuntimeError('Can\'t get START_MISSION tag for 10s')
 
     def get_skill_imgs(self, turn, saveImg=False):
-        # turn = False for get all imgs.
+        # turn = False for update imgs of all 9 skills.
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
         ski_y = 0.8009
-        skill_imgs = list(range(9))
+        skill_imgs = [None] * 9
         for no in opt.skill:
             i = no - 1
             if turn and turn - self.skill_used_turn[i] < SKILL_MIN_CD:
                 # just use the old img:
-                skill_imgs[i] = self.img['skills'][i]
+                skill_imgs[i] = self.img['onCD-skills'][i]
                 continue
             # N = 25 if SYSTEM == 'linux' else 1
             # Screenshot bug (gray block bug) has been fixed. 1 is enough.
@@ -450,40 +503,36 @@ class Fgo:
         Get images of skills (CD status) after using in turn 1, and compare current_img to CD_status_img to see that which skill can be used. 
         '''
         # position of skills:
-        info('Now using skills...')
+        info('Start using skills...')
         # snap_x = 0.0734
-        if turn == 1:
+        allowed_skills = set(opt.skill)
+        if opt.config_file:
+            allowed_skills = self.config['allowed-skills'][str(
+                CURRENT['scene'])]
+            allowed_skills = set([int(x)
+                                  for x in allowed_skills]) & set(opt.skill)
 
-            time.sleep(EXTRA_SLEEP_UNIT * 10)
-            self.skill_used_turn = [None for _ in range(9)]
-            for no in opt.skill:
+        now_skill_imgs = self.get_skill_imgs(False)
+
+        info('Skill CDs: {}'.format(
+            [turn - x for x in self.skill_used_turn if type(x) == int]))
+        
+        # if all skills have no change, return directly:
+        if now_skill_imgs == self.img['onCD-skills']:
+            info('All skills are in CD, skip using.')
+            return
+
+        for no in allowed_skills:
+            # never used, use it directly and save CD img for it:
+            if self.img['onCD-skills'] is None:
                 self._use_one_skill(turn, no - 1)
-                self.skill_used_turn[no - 1] = 1
-            if YILI:
-                self._use_one_skill(turn, 6)
-            time.sleep(EXTRA_SLEEP_UNIT * 2)
-
-            # first turn, get imgs of all skills (in CD status)
-            self.img['skills'] = self.get_skill_imgs(turn=False)
-
-        else:
-            info('Skill CD: {}'.format(
-                [turn - x for x in self.skill_used_turn if type(x) == int]))
-            time.sleep(EXTRA_SLEEP_UNIT * 4)
-            # only get imgs of skills that not in CD (now_turn - used_turn > min_CD):
-            now_skill_img = self.get_skill_imgs(turn)
-
-            if not (now_skill_img == self.img['skills']):
-                time.sleep(EXTRA_SLEEP_UNIT * 10)
-                for no in opt.skill:
-                    if not (now_skill_img[no - 1] == self.img['skills'][no - 1]):
-                        self._use_one_skill(turn, no - 1)
-                    # if turn == 2 and no == 8:
-                    #     self._use_one_skill(turn, no-1)
-                if YILI:
-                    self._use_one_skill(turn, 6)
-            time.sleep(EXTRA_SLEEP_UNIT * 2)
-            self.img['skills'] = self.get_skill_imgs(turn=False)
+            
+            elif not (now_skill_imgs[no - 1] == self.img['onCD-skills'][no - 1]):
+                self._use_one_skill(turn, no - 1)
+        
+        time.sleep(EXTRA_SLEEP_UNIT * 2)
+        # after using skills, get imgs of them in CD status:
+        self.img['onCD-skills'] = self.get_skill_imgs(False)
 
     def _choose_card(self):
         # normal atk card position:
@@ -511,14 +560,20 @@ class Fgo:
         return tuple(nearest3RGB), min_sigma
 
     def attack(self):
+        used_ults = opt.ultimate
+        if opt.config_file:
+            ult_conf = self.config['ultimate'][str(CURRENT['scene'])]
+            used_ults = () if ult_conf == 'none' else [
+                int(x) for x in ult_conf]
+
         if opt.OCR:
             try:
                 enemyHP, ourHP = self.ocrHP()
+                if enemyHP < 50000 and ourHP > 24000:
+                    used_ults = ()
             except Exception as e:
                 print(e)
                 logging.error('OCR failed, please check images in `./data`')
-            else:
-                opt.ultimate = () if enemyHP < 50000 and ourHP > 24000 else BAK_ULTIMATE
 
         info('Now start attacking....')
         # click attack icon:
@@ -547,10 +602,10 @@ class Fgo:
         # time.sleep(EXTRA_SLEEP_UNIT*3)
         for i in range(3):
             self.click(atk_card_x[nearest3ix[i]], 0.7019, ATK_SLEEP_TIME)
-            if i == 0 and opt.ultimate:
+            if i == 0 and used_ults:
                 time.sleep(0.2)
                 ult_x = [0.3171, 0.5005, 0.6839]
-                for j in opt.ultimate:
+                for j in used_ults:
                     # j = 1, 2, 3
                     self.click(ult_x[j - 1], 0.2833, ULTIMATE_SLEEP)
         # To avoid `Can't use card` status:
@@ -560,7 +615,7 @@ class Fgo:
             time.sleep(1)
         info('Card using over.')
 
-    def _monitor(self, names, max_time, sleep, bounds=0.5, AllowListenKey=False, ClickToSkip=False, EchoError=True):
+    def _monitor(self, names, max_time, sleep, bounds=0.5, AllowListenKey=False, ClickToSkip=False, EchoError=True, UseSimilar=False):
         '''
         used for monitoring area change.
         When `self.pre_img[name]` is similar to now_img, save now img_bitmap as new img and return.
@@ -575,6 +630,7 @@ class Fgo:
         * AllowListenKey: allow keyboard listening during the loop (for pause & end).
         * ClickToSkip: Click the screen to skip something.
         * EchoError: If printing error message when running out of time.
+        * UseSimilar: <List[bool]> use similar() for each names or not, even if self.img already exists. (for final-scene and battle-end img)
         '''
         if SYSTEM != 'linux':
             AllowListenKey = False
@@ -582,7 +638,9 @@ class Fgo:
         names = (names,) if type(names) == str else names
         bounds = bounds if isinstance(bounds, Iterable) else [
             bounds for _ in names]
-        assert len(names) == len(bounds)
+        UseSimilar = UseSimilar if isinstance(UseSimilar, Iterable) else [
+            UseSimilar for _ in names]
+        assert len(names) == len(bounds) == len(UseSimilar)
 
         beg = time.time()
         pause_time = 0  # set for not calculating time for pause
@@ -590,7 +648,7 @@ class Fgo:
 
         # start monitor:
         while 1:
-            for name, bound in zip(names, bounds):
+            for name, bound, use_similar in zip(names, bounds, UseSimilar):
                 # First running for `name`:
                 if not self.img[name]:
                     now_img, now_bit = self.grab(self.area[name], to_PIL=True)
@@ -608,7 +666,16 @@ class Fgo:
                                 'Get new smaple [{}], Similarity: {:.4f}'.format(name, similarity))
                         return name
 
-                # already have self.img[name]:
+                # already have self.img[name], but still want to use similar():
+                elif use_similar:
+                    now_img, _ = self.grab(self.area[name], to_PIL=True)
+                    res = similar(self.LoadImg[name], now_img, bound, name)
+                    if res:
+                        logging.info(
+                            'Detected [{}] using similar(), Similarity: {:.4f}.'.format(name, res))
+                        return name
+
+                # use self.img to compare:
                 elif self.grab(self.area[name], to_PIL=False) == self.img[name]:
                     logging.info(
                         'Detected [{}], Func <_monitsor> returned.'.format(name))
@@ -643,13 +710,13 @@ class Fgo:
 
     def wait_loading(self):
         logging.info('<LOAD> - Now loading...')
-        # if CURRENT_EPOCH == 1:
-            # if FUFU_NOT_DETECTED:
-            #     time.sleep(10)
-            #     self.img['fufu'] = self.grab('fufu')
-            #     info('ATTENTION: Now saved sample for `fufu` since monitor failed.')
-            # else:
-            # self._monitor('fufu', 30, 0.5)
+        # if CURRENT['epoch'] == 1:
+        # if FUFU_NOT_DETECTED:
+        #     time.sleep(10)
+        #     self.img['fufu'] = self.grab('fufu')
+        #     info('ATTENTION: Now saved sample for `fufu` since monitor failed.')
+        # else:
+        # self._monitor('fufu', 30, 0.5)
 
         if self._monitor('atk', 150, 0.5) == -1:
             os._exit(0)
@@ -688,31 +755,36 @@ class Fgo:
             CLICK_BREAK_TIME = PRE_BREAK_TIME
             return 'BATTLE-OVER'
 
-        def battle_title():
-            global CURRENT_SCENE
-            if type(CURRENT_SCENE) == int:
-                CURRENT_SCENE += 1
-            info('Current scene: {}'.format(CURRENT_SCENE))
+        def normal_scene():
+            CURRENT['scene'] += 1
+            CURRENT['scene'] = min(CURRENT['scene'], 2)
+            info('Current scene: {}'.format(CURRENT['scene']))
             return 'WAIT-MENU'
 
-        def final_battle_title():
-            global CURRENT_SCENE
-            CURRENT_SCENE = 'FINAL'
-            info('Current scene: {}'.format(CURRENT_SCENE))
+        def final_scene():
+            CURRENT['scene'] = 3       # 3 for the last (final) scene.
+            info('Current scene: {}'.format(CURRENT['scene']))
             return 'WAIT-MENU'
 
         func_maps = {
             'menu': menu,
             'atk': atk,
             'fufu': fufu,
-            'battle-title': battle_title,
-            'final-battle-title': final_battle_title,
+            'normal-scene': normal_scene,
+            'final-scene': final_scene,
             'BattleFinish': battle_finish,
         }
 
+        # init at the first turn.
+        if turn == 1:
+            self.skill_used_turn = [None] * 9
+
         self.use_skill(turn)
         # reset the attack order:
-        if opt.order:
+        order_opt = opt.order
+        if opt.config_file:
+            order_opt = int(self.config['atk-order'][str(CURRENT['scene'])])
+        if order_opt:
             # AtkOrder[opt.order] represent the atk order.
             AtkOrder = (None, (0, 1, 2),
                         (0, 2, 1), (1, 2, 0),
@@ -720,15 +792,23 @@ class Fgo:
                         (1, 0, 2))
             # position: 0, 1, 2 from left to right.
             enemy_x = (0.1010, 0.3010, 0.4901)
-            for ix in AtkOrder[opt.order]:
+            for ix in AtkOrder[order_opt]:
                 self.click(enemy_x[ix], 0.0602, CLICK_BAR_SLEEP)
         self.attack()
         time.sleep(1.5)
 
         # Monitoring status change:
+        args = {
+            'max_time': 60,
+            'sleep': 0,
+            'AllowListenKey': True,
+            'ClickToSkip': True,
+            'names':      ('atk', 'final-scene', 'normal-scene', 'BattleFinish', 'menu'),
+            'bounds':     (0.6,   0.65,          0.65,           0.7,            0.7),
+            'UseSimilar': (False, True,          True,           True,           False),
+        }
         info('Monitoring, no change got...')
-        res = self._monitor(
-            ('atk', 'final-battle-title', 'BattleFinish', 'menu'), 60, 0, (0.6, 0.8, 0.8, 0.7, 0.7), True, True)
+        res = self._monitor(**args)
 
         if res == -1:
             atk_card_x = [0.1003 + 0.2007 * x for x in range(5)]
@@ -737,8 +817,7 @@ class Fgo:
             for i in range(5):
                 self.click(atk_card_x[i], 0.7019, 0.2)
             logging.warning('Something wrong. Trying to fix it.')
-            res = self._monitor(
-                ('atk', 'final-battle-title', 'BattleFinish', 'menu'), 50, 0, (0.6, 0.65, 0.7, 0.7), True, True)
+            res = self._monitor(**args)
 
         if res != -1:
             status = func_maps[res]()
@@ -753,8 +832,7 @@ class Fgo:
             raise RuntimeError('Running out of time.')
 
     def one_battle(self, go_on=False):
-        global CURRNET_SCENE
-        CURRENT_SCENE = 1
+        CURRENT['scene'] = 1
 
         if not go_on:
             self.enter_battle(opt.support)
@@ -766,6 +844,7 @@ class Fgo:
                 os._exit(0)
 
         for i in range(50):
+            CURRENT['turn'] = i+1
             info('Start Turn {}'.format(i + 1))
             # Here CD_num == i
             status = self.one_turn(i + 1)
@@ -788,11 +867,10 @@ class Fgo:
             self.click(0.6563, 0.7824, 1)
             logging.info('Apple using over.')
             time.sleep(1.5)
-            global CURRENT_EPOCH
 
             one_apple_battle_num = opt.clearAP  # go to see `opt.clearAP` help msg
-            if opt.epoch - CURRENT_EPOCH < one_apple_battle_num - 1 and opt.clearAP:
-                opt.epoch = CURRENT_EPOCH + one_apple_battle_num - 1
+            if opt.epoch - CURRENT['epoch'] < one_apple_battle_num - 1 and opt.clearAP:
+                opt.epoch = CURRENT['epoch'] + one_apple_battle_num - 1
                 logging.info(
                     'Auto change EPOCH to {} to use all AP.'.format(opt.epoch))
 
@@ -846,15 +924,14 @@ class Fgo:
         # self.save_AP_recover_img()
         for j in range(opt.epoch):
             print('\n ----- EPOCH{} START -----'.format(j + 1))
-            global CURRENT_EPOCH
-            CURRENT_EPOCH += 1
+            CURRENT['epoch'] += 1
             self.one_battle()
             time.sleep(0.5)
 
             # Stop manually:
             if END_AFTER_THIS_EPOCH:
                 print('➜ [Info] Manual Interruption after epoch {}.'.format(
-                    CURRENT_EPOCH))
+                    CURRENT['epoch']))
                 os._exit(0)
 
         end = time.time()
@@ -890,9 +967,9 @@ class Fgo:
         #     time.sleep(0.1)
         # self.run()
         # self.ocrHP()
-        # self.buy()
+        self.buy()
         # bm, im = self.grab(self.area['fufu'], 'fufu_sample', to_PIL=True)
-        bm, im = self.grab(self.area['atk'], 'atk_sample', to_PIL=True)
+        # bm, im = self.grab(self.area['atk'], 'atk_sample', to_PIL=True)
         # ipdb.set_trace()
 
 
