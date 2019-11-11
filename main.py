@@ -424,7 +424,8 @@ class Fgo:
             if CURRENT['epoch'] == 1:
                 time.sleep(1.5)
             self.click(0.0729 + 0.0527 * supNo, 0.1796, 1)
-
+        else:
+            time.sleep(1)
         self.click(sup_tag_x, sup_tag_y, 1)
 
         # if self._monitor('StartMission', 10, 0.3) != -1:
@@ -440,7 +441,7 @@ class Fgo:
                 self.send_mail('Error')
                 raise RuntimeError('Can\'t get START_MISSION tag for 10s')
 
-    def get_skill_imgs(self, turn, saveImg=False):
+    def get_skill_imgs(self, allowed_skills, saveImg=False):
         # turn = False for update imgs of all 9 skills.
         ski_x = [0.0542, 0.1276, 0.2010, 0.3021,
                  0.3745, 0.4469, 0.5521, 0.6234, 0.6958]
@@ -448,7 +449,7 @@ class Fgo:
         skill_imgs = [None] * 9
         for no in opt.skill:
             i = no - 1
-            if turn and turn - self.skill_used_turn[i] < SKILL_MIN_CD:
+            if allowed_skills and no not in allowed_skills:
                 # just use the old img:
                 skill_imgs[i] = self.img['onCD-skills'][i]
                 continue
@@ -502,9 +503,8 @@ class Fgo:
         '''
         Get images of skills (CD status) after using in turn 1, and compare current_img to CD_status_img to see that which skill can be used. 
         '''
-        # position of skills:
         info('Start using skills...')
-        # snap_x = 0.0734
+        # update allowed-skills:
         allowed_skills = set(opt.skill)
         if opt.config_file:
             allowed_skills = self.config['allowed-skills'][str(
@@ -516,23 +516,26 @@ class Fgo:
 
         info('Skill CDs: {}'.format(
             [turn - x for x in self.skill_used_turn if type(x) == int]))
-        
-        # if all skills have no change, return directly:
-        if now_skill_imgs == self.img['onCD-skills']:
-            info('All skills are in CD, skip using.')
-            return
 
+        # if all skills have no change, return directly:
+        # if turn != 1 and now_skill_imgs == self.img['onCD-skills']:
+        #     info('All skills are in CD, skip using.')
+        #     return
+
+        time.sleep(EXTRA_SLEEP_UNIT * 8)
         for no in allowed_skills:
             # never used, use it directly and save CD img for it:
-            if self.img['onCD-skills'] is None:
+            if self.img['onCD-skills'][no-1] is None:
+                print(f'+ skill {no} never used, use it.')
                 self._use_one_skill(turn, no - 1)
-            
+
             elif not (now_skill_imgs[no - 1] == self.img['onCD-skills'][no - 1]):
+                print(f'+ skill {no} not in CD, use it.')
                 self._use_one_skill(turn, no - 1)
-        
+
         time.sleep(EXTRA_SLEEP_UNIT * 2)
         # after using skills, get imgs of them in CD status:
-        self.img['onCD-skills'] = self.get_skill_imgs(False)
+        self.img['onCD-skills'] = self.get_skill_imgs(allowed_skills)
 
     def _choose_card(self):
         # normal atk card position:
