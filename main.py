@@ -25,6 +25,14 @@ from utils import *
 from email_config import *
 # from ipdb import set_trace
 
+print('')
+
+print('    ______            ____        __         ')
+print('   / ____/___ _____  / __ \____  / /_  ____  ')
+print('  / /_  / __ `/ __ \/ /_/ / __ \/ __ \/ __ \\')
+print(' / __/ / /_/ / /_/ / _, _/ /_/ / /_/ / /_/ / ')
+print('/_/    \__, /\____/_/ |_|\____/_.___/\____/  ')
+print('      /____/                                 ')
 
 SYSTEM = sys.platform
 
