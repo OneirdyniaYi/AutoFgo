@@ -256,10 +256,6 @@ class Fgo:
         # image of skills which can be used (light):
         # self.img['active-skills'] = list(range(9))
 
-        #load 3 color card images:
-        for x in ('red', 'green', 'blue'):
-            self.img[x + '-card'] = Image.open(f'{ROOT}data/samples/{x}-card.png')
-
         # load sample imgs:
         try:
             self.LoadImg = {x: Image.open(
@@ -546,40 +542,36 @@ class Fgo:
         # normal atk card position:
         # for `ix` in range(-2, 3), card in No 1~5, get the screenshot for each card and calculate the mean of RGB values.
         pics = [self.grab((0.4411 + ix * 0.2015, 0.7333, 0.5588 + ix *
-                            0.2015, 0.8324), to_PIL=True)[0] for ix in range(-2, 3)]
+                           0.2015, 0.8324), to_PIL=True)[0] for ix in range(-2, 3)]
         RGBs = [np.array(x).mean(axis=(0, 1)) for x in pics]
         nearest3RGB = [None, None, None]
-        min_sigma = 1e5
-        
-        rgb = {'r': np.array([256, 0, 0]),
-               'g': np.array([0, 256, 0]),
-               'b': np.array([0, 0, 256]),
-               }
 
+        rgb = [np.array([256, 0, 0]), np.array(
+            [0, 256, 0]), np.array([0, 0, 256])]
         card_colors = []
-        for x in RGBs:
-            min_distance = 1e5
-            distances = [np.linalg.norm(x - v) for k, v in rgb.items()]
-            card_colors.append(['红', '绿', '蓝'][distances.index(max(distances))]) 
+        # count the number of each color of cards:
+        rgb_counter = {'R': 0, 'G': 0, 'B': 0}
+        for x in pics:
+            distances = [np.linalg.norm(x - v) for v in rgb]
+            c = ['R', 'G', 'B'][np.argmin(distances)]
+            rgb_counter[c] += 1
+            card_colors.append(c)
+        info(f'Atk card colors: {card_colors}')
 
-        print('+ colors:', card_colors)
-        # import ipdb
-        # ipdb.set_trace()
-
-        for j in range(5):
-            for i in range(j):
-                cards = set(range(5)) - {i, j}
-                now = np.array([RGBs[x] for x in cards]).var(axis=0).sum()
-                # print('> {}: Var: {}'.format(cards, now))
-                if now < min_sigma:
-                    min_sigma = now
-                    nearest3RGB = cards
-        # print(nearest3RGB)
-        return tuple(nearest3RGB), min_sigma
+        # use 3 cards with same color:
+        max_c = max(rgb_counter, key=rgb_counter.get)
+        if rgb_counter[max_c] >= 3:
+            return [i for i, x in enumerate(card_colors) if x == max_c][:3]
+        
+        # No 3 card in same color, then use red card first:
+        else:
+            red_ix = card_colors.index('R')
+            others = set(range(5)) - red_ix
+            return [red_ix, *others][:3]
 
     def _choose_card_by_similar(self):
         pics = [np.array(self.grab((0.4411 + ix * 0.2015, 0.7333, 0.5588 + ix *
-                    0.2015, 0.8324), to_PIL=True)[0]) for ix in range(-2, 3)]
+                                    0.2015, 0.8324), to_PIL=True)[0]) for ix in range(-2, 3)]
         # hists = [cal_single_hist(x) for x in pics]     # hist shape: [256, 3]
         max_sim = 0
         for j in range(5):
@@ -587,8 +579,8 @@ class Fgo:
                 cards_ix = set(range(5)) - {i, j}
                 ix1, ix2, ix3 = cards_ix
                 now = np.mean([
-                    cmp_single_hist(pics[ix1], pics[ix2]), 
-                    cmp_single_hist(pics[ix2], pics[ix3]), 
+                    cmp_single_hist(pics[ix1], pics[ix2]),
+                    cmp_single_hist(pics[ix2], pics[ix3]),
                     cmp_single_hist(pics[ix1], pics[ix3]), ])
                 # print('> {}: Var: {}'.format(cards_ix, now))
                 if now > max_sim:
@@ -619,35 +611,22 @@ class Fgo:
         while self._monitor('atk', 0.1, 0, EchoError=False) != -1:
             logging.warning('Click ATK_Icon failed.')
             self.click(0.8823, 0.8444, 1)
+
         # use normal atk card:
         atk_card_x = [0.1003 + 0.2007 * x for x in range(5)]
-        nearest3ix, min_sigma = self._choose_card()
-        sigmas = [min_sigma]
-        ixs = [nearest3ix]
-
-        # there is no 3 similar cards:
-        if min_sigma > 300 and SYSTEM == 'linux':
-            for _ in range(2):
-                nearest3ix, min_sigma = self._choose_card()
-                sigmas.append(min_sigma)
-                ixs.append(nearest3ix)
-                if min_sigma < 300:
-                    break
-            if min_sigma > 300:
-                min_sigma = min(sigmas)
-                nearest3ix = ixs[sigmas.index(min_sigma)]
-        logging.info('CardUse:{}, MinVar(RGB)={:.3f}'.format(
-            nearest3ix, min_sigma))
+        ues_ixs = self._choose_card()
+        logging.info('CardUse:{}'.format(ues_ixs))
 
         # time.sleep(EXTRA_SLEEP_UNIT*3)
         for i in range(3):
-            self.click(atk_card_x[nearest3ix[i]], 0.7019, ATK_SLEEP_TIME)
+            self.click(atk_card_x[ues_ixs[i]], 0.7019, ATK_SLEEP_TIME)
             if i == 0 and used_ults:
                 time.sleep(0.2)
                 ult_x = [0.3171, 0.5005, 0.6839]
                 for j in used_ults:
                     # j = 1, 2, 3
                     self.click(ult_x[j - 1], 0.2833, ULTIMATE_SLEEP)
+
         # To avoid `Can't use card` status:
         for _ in range(1):
             for i in range(5):
