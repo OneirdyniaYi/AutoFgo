@@ -544,31 +544,32 @@ class Fgo:
         pics = [self.grab((0.4411 + ix * 0.2015, 0.7333, 0.5588 + ix *
                            0.2015, 0.8324), to_PIL=True)[0] for ix in range(-2, 3)]
         RGBs = [np.array(x).mean(axis=(0, 1)) for x in pics]
-        nearest3RGB = [None, None, None]
-
-        rgb = [np.array([256, 0, 0]), np.array(
+        rgb_values = [np.array([256, 0, 0]), np.array(
             [0, 256, 0]), np.array([0, 0, 256])]
         card_colors = []
         # count the number of each color of cards:
-        rgb_counter = {'R': 0, 'G': 0, 'B': 0}
-        for x in pics:
-            distances = [np.linalg.norm(x - v) for v in rgb]
+        ccounter = {'R': 0, 'G': 0, 'B': 0}
+        for x in RGBs:
+            distances = [np.linalg.norm(x - v) for v in rgb_values]
             c = ['R', 'G', 'B'][np.argmin(distances)]
-            rgb_counter[c] += 1
+            ccounter[c] += 1
             card_colors.append(c)
-        info(f'Atk card colors: {card_colors}')
 
         # use 3 cards with same color:
-        max_c = max(rgb_counter, key=rgb_counter.get)
-        if rgb_counter[max_c] >= 3:
-            return [i for i, x in enumerate(card_colors) if x == max_c][:3]
-        
+        max_c = max(ccounter, key=ccounter.get)
+        if ccounter[max_c] >= 3:
+            use_ixs = [i for i, x in enumerate(card_colors) if x == max_c][:3]
         # No 3 card in same color, then use red card first:
         else:
             red_ix = card_colors.index('R')
-            others = set(range(5)) - red_ix
-            return [red_ix, *others][:3]
+            others = set(range(5))
+            others.remove(red_ix)
+            use_ixs = [red_ix, *others][:3]
 
+        info(f'Card colors: {"".join(card_colors)}, use: {use_ixs}')
+        return use_ixs
+
+    # old code: maybe useful for detecting servent avator in cards:
     def _choose_card_by_similar(self):
         pics = [np.array(self.grab((0.4411 + ix * 0.2015, 0.7333, 0.5588 + ix *
                                     0.2015, 0.8324), to_PIL=True)[0]) for ix in range(-2, 3)]
@@ -615,7 +616,6 @@ class Fgo:
         # use normal atk card:
         atk_card_x = [0.1003 + 0.2007 * x for x in range(5)]
         ues_ixs = self._choose_card()
-        logging.info('CardUse:{}'.format(ues_ixs))
 
         # time.sleep(EXTRA_SLEEP_UNIT*3)
         for i in range(3):
