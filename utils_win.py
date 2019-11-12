@@ -18,7 +18,7 @@ CLICK_BREAK_TIME = 1.5
 
 SCALE = 1
 
-
+# add a useless args `to_PIL` to fit API in `utils_linux`
 def ScreenShot(x1, y1, x2, y2, to_PIL=False, fname=None):
     im = ImageGrab.grab(bbox=(x1, y1, x2, y2))
     if fname:

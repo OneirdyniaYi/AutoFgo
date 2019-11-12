@@ -21,7 +21,7 @@ import pandas as pd
 import prettytable
 
 from config import *
-from utils import similar, bmp2pil
+from utils import *
 from email_config import *
 # from ipdb import set_trace
 
@@ -256,10 +256,14 @@ class Fgo:
         # image of skills which can be used (light):
         # self.img['active-skills'] = list(range(9))
 
+        #load 3 color card images:
+        for x in ('red', 'green', 'blue'):
+            self.img[x + '-card'] = Image.open(f'{ROOT}data/samples/{x}-card.png')
+
         # load sample imgs:
         try:
             self.LoadImg = {x: Image.open(
-                ROOT + 'data/{}_sample.png'.format(x)) for x in self.area.keys()}
+                ROOT + 'data/samples/{}.png'.format(x)) for x in self.area.keys()}
         except Exception:
             print('[Warning] Some sample images not found.')
         if not opt.ContinueRun and not opt.debug and not opt.locate:
@@ -454,7 +458,7 @@ class Fgo:
                 skill_imgs[i] = self.img['onCD-skills'][i]
                 continue
             # N = 25 if SYSTEM == 'linux' else 1
-            # Screenshot bug (gray block bug) has been fixed. 1 is enough.
+            # Screenshot bug (gray block bug) has been fixed. 1 is enough:
             N = 1
             imgs = [self.grab((ski_x[i] - 0.0138, ski_y - 0.0222,
                                ski_x[i] + 0.0138, ski_y)) for _ in range(N)]
@@ -516,6 +520,7 @@ class Fgo:
 
         info('Skill CDs: {}'.format(
             [turn - x for x in self.skill_used_turn if type(x) == int]))
+        info(f'Alloewed skills: {allowed_skills}')
 
         # if all skills have no change, return directly:
         # if turn != 1 and now_skill_imgs == self.img['onCD-skills']:
@@ -526,11 +531,11 @@ class Fgo:
         for no in allowed_skills:
             # never used, use it directly and save CD img for it:
             if self.img['onCD-skills'][no-1] is None:
-                print(f'+ skill {no} never used, use it.')
+                # print(f'+ skill {no} never used, use it.')
                 self._use_one_skill(turn, no - 1)
 
             elif not (now_skill_imgs[no - 1] == self.img['onCD-skills'][no - 1]):
-                print(f'+ skill {no} not in CD, use it.')
+                # print(f'+ skill {no} not in CD, use it.')
                 self._use_one_skill(turn, no - 1)
 
         time.sleep(EXTRA_SLEEP_UNIT * 2)
@@ -540,15 +545,27 @@ class Fgo:
     def _choose_card(self):
         # normal atk card position:
         # for `ix` in range(-2, 3), card in No 1~5, get the screenshot for each card and calculate the mean of RGB values.
-        if SYSTEM == 'linux':
-            pics = [self.grab((0.4411 + ix * 0.2015, 0.7333, 0.5588 + ix *
-                               0.2015, 0.8324), to_PIL=True)[0] for ix in range(-2, 3)]
-        else:
-            pics = [self.grab((0.4411 + ix * 0.2015, 0.7333, 0.5588 + ix *
-                               0.2015, 0.8324)) for ix in range(-2, 3)]
+        pics = [self.grab((0.4411 + ix * 0.2015, 0.7333, 0.5588 + ix *
+                            0.2015, 0.8324), to_PIL=True)[0] for ix in range(-2, 3)]
         RGBs = [np.array(x).mean(axis=(0, 1)) for x in pics]
         nearest3RGB = [None, None, None]
         min_sigma = 1e5
+        
+        rgb = {'r': np.array([256, 0, 0]),
+               'g': np.array([0, 256, 0]),
+               'b': np.array([0, 0, 256]),
+               }
+
+        card_colors = []
+        for x in RGBs:
+            min_distance = 1e5
+            distances = [np.linalg.norm(x - v) for k, v in rgb.items()]
+            card_colors.append(['红', '绿', '蓝'][distances.index(max(distances))]) 
+
+        print('+ colors:', card_colors)
+        # import ipdb
+        # ipdb.set_trace()
+
         for j in range(5):
             for i in range(j):
                 cards = set(range(5)) - {i, j}
@@ -557,10 +574,27 @@ class Fgo:
                 if now < min_sigma:
                     min_sigma = now
                     nearest3RGB = cards
-        logging.info('MinVar=Var{}={:.1f}.'.format(
-            nearest3RGB, min_sigma))
         # print(nearest3RGB)
         return tuple(nearest3RGB), min_sigma
+
+    def _choose_card_by_similar(self):
+        pics = [np.array(self.grab((0.4411 + ix * 0.2015, 0.7333, 0.5588 + ix *
+                    0.2015, 0.8324), to_PIL=True)[0]) for ix in range(-2, 3)]
+        # hists = [cal_single_hist(x) for x in pics]     # hist shape: [256, 3]
+        max_sim = 0
+        for j in range(5):
+            for i in range(j):
+                cards_ix = set(range(5)) - {i, j}
+                ix1, ix2, ix3 = cards_ix
+                now = np.mean([
+                    cmp_single_hist(pics[ix1], pics[ix2]), 
+                    cmp_single_hist(pics[ix2], pics[ix3]), 
+                    cmp_single_hist(pics[ix1], pics[ix3]), ])
+                # print('> {}: Var: {}'.format(cards_ix, now))
+                if now > max_sim:
+                    max_sim = now
+                    nearest3ix = cards_ix
+        return tuple(nearest3ix), max_sim
 
     def attack(self):
         used_ults = opt.ultimate
@@ -590,6 +624,8 @@ class Fgo:
         nearest3ix, min_sigma = self._choose_card()
         sigmas = [min_sigma]
         ixs = [nearest3ix]
+
+        # there is no 3 similar cards:
         if min_sigma > 300 and SYSTEM == 'linux':
             for _ in range(2):
                 nearest3ix, min_sigma = self._choose_card()
@@ -600,8 +636,9 @@ class Fgo:
             if min_sigma > 300:
                 min_sigma = min(sigmas)
                 nearest3ix = ixs[sigmas.index(min_sigma)]
-        logging.info('CardUse:{}, MinVar(RGB)={:.1f}.'.format(
+        logging.info('CardUse:{}, MinVar(RGB)={:.3f}'.format(
             nearest3ix, min_sigma))
+
         # time.sleep(EXTRA_SLEEP_UNIT*3)
         for i in range(3):
             self.click(atk_card_x[nearest3ix[i]], 0.7019, ATK_SLEEP_TIME)
@@ -971,8 +1008,6 @@ class Fgo:
         # self.run()
         # self.ocrHP()
         self.buy()
-        # bm, im = self.grab(self.area['fufu'], 'fufu_sample', to_PIL=True)
-        # bm, im = self.grab(self.area['atk'], 'atk_sample', to_PIL=True)
         # ipdb.set_trace()
 
 

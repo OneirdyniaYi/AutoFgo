@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 
 
-def cal_single_hist(image1, image2):
+def cmp_single_hist(image1, image2):
     # calculate gray hist similarity for a single channel.
     # image1, image2: [h, w, 3] shape numpy.ndarray
     hist1 = cv2.calcHist([image1], [0], None, [256], [0.0, 255.0])
@@ -12,6 +12,12 @@ def cal_single_hist(image1, image2):
     for h1, h2 in zip(hist1, hist2):
         degree += (1 - abs(h1 - h2) / max(h1, h2)) if h1 != h2 else 1
     return degree / len(hist1)
+
+
+def cal_single_hist(img, size=(128, 128)):
+    # get RGB hist for a img.
+    img = cv2.split(cv2.resize(np.array(img), size))
+    return cv2.calcHist([img], [0], None, [256], [0.0, 255.0]).squeeze()
 
 
 def similar(img1, img2, bound=0.5, name=False, size=(128, 128)):
@@ -25,7 +31,7 @@ def similar(img1, img2, bound=0.5, name=False, size=(128, 128)):
     sub_image2 = cv2.split(cv2.resize(image2, size))
     sub_data = 0
     for im1, im2 in zip(sub_image1, sub_image2):
-        sub_data += cal_single_hist(im1, im2)
+        sub_data += cmp_single_hist(im1, im2)
 
     res = (sub_data / 3)[0] if type(sub_data) != float else sub_data / 3
 
@@ -40,3 +46,8 @@ def bmp2pil(im):
     width, height = int(round(im.width * im.scale)
                         ), int(round(im.height * im.scale))
     return Image.frombytes('RGB', (width, height), bytes(im))
+
+
+if __name__ == "__main__":
+    res = cal_hist(Image.open('./data/menu_sample.png'))
+    print(res)
