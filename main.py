@@ -32,7 +32,7 @@ print('   / ____/___ _____  / __ \____  / /_  ____  ')
 print('  / /_  / __ `/ __ \/ /_/ / __ \/ __ \/ __ \\')
 print(' / __/ / /_/ / /_/ / _, _/ /_/ / /_/ / /_/ / ')
 print('/_/    \__, /\____/_/ |_|\____/_.___/\____/  ')
-print('      /____/                                 ')
+print('      /____/                               \n')
 
 SYSTEM = sys.platform
 
@@ -636,6 +636,7 @@ class Fgo:
                     self.click(ult_x[j - 1], 0.2833, ULTIMATE_SLEEP)
 
         # To avoid `Can't use card` status:
+        time.sleep(0.5)
         for _ in range(1):
             for i in range(5):
                 self.click(atk_card_x[i], 0.7019, 0.2)
