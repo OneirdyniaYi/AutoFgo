@@ -511,7 +511,6 @@ class Fgo:
         '''
         Get images of skills (CD status) after using in turn 1, and compare current_img to CD_status_img to see that which skill can be used. 
         '''
-        info('Start using skills...')
         # update allowed-skills:
         allowed_skills = set(opt.skill)
         if opt.config_file:
@@ -522,7 +521,7 @@ class Fgo:
 
         now_skill_imgs = self.get_skill_imgs(False)
 
-        info('Skill CDs: {}'.format(
+        info('Now use Skills. CD(turn): {}'.format(
             [turn - x for x in self.skill_used_turn if type(x) == int]))
         info(f'Alloewed skills: {allowed_skills}')
 
@@ -806,13 +805,13 @@ class Fgo:
         # init at the first turn.
         if turn == 1:
             self.skill_used_turn = [None] * 9
-
         self.use_skill(turn)
+
         # reset the attack order:
         order_opt = opt.order
         if opt.config_file:
             order_opt = int(self.config['atk-order'][str(CURRENT['scene'])])
-        if order_opt:
+        if order_opt and order_opt != 1:
             # AtkOrder[opt.order] represent the atk order.
             AtkOrder = (None, (0, 1, 2),
                         (0, 2, 1), (1, 2, 0),
@@ -822,6 +821,9 @@ class Fgo:
             enemy_x = (0.1010, 0.3010, 0.4901)
             for ix in AtkOrder[order_opt]:
                 self.click(enemy_x[ix], 0.0602, CLICK_BAR_SLEEP)
+                # after 2019.11 update:
+                self.click(0.7771, 0.9627, CLICK_BAR_SLEEP)
+
         self.attack()
         time.sleep(1.5)
 
@@ -831,9 +833,9 @@ class Fgo:
             'sleep': 0,
             'AllowListenKey': True,
             'ClickToSkip': True,
-            'names':      ('atk', 'final-scene', 'normal-scene', 'BattleFinish', 'menu'),
-            'bounds':     (0.6,   0.65,          0.65,           0.7,            0.7),
-            'UseSimilar': (False, True,          True,           True,           False),
+            'names':      ('atk','final-scene','normal-scene','BattleFinish','menu'),
+            'bounds':     (0.6,  0.65,         0.65,          0.7,           0.7),
+            'UseSimilar': (False,True,         True,          True,          False),
         }
         info('Monitoring, no change got...')
         res = self._monitor(**args)
